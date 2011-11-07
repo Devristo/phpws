@@ -295,20 +295,27 @@ class WebSocketServer implements WebSocketObserver{
 	}
 
 	public function onMessage(IWebSocketConnection $connection, IWebSocketMessage $msg){
-		$this->debug("Server::onMessage");
-		if($connection->getAdminKey() == $this->getAdminKey())
-			$this->dispatchAdminMessage($connection, $msg);
-		else $this->dispatchMessage($connection, $msg);
+		try{
+			if($connection->getAdminKey() == $this->getAdminKey())
+				$this->dispatchAdminMessage($connection, $msg);
+			else $this->dispatchMessage($connection, $msg);
+		} catch (Exception $e){
+			$this->say("Exception occurred while handling message:\r\n".$e->getTraceAsString());
+		}
 	}
 
 	public function onDisconnect(WebSocket $socket){
-		if($con = $socket->getConnection()){
-			$handler = $this->_connections[$con];
+		try{
+			if($con = $socket->getConnection()){
+				$handler = $this->_connections[$con];
 
-			if($handler)
-				$this->uriHandlers[$handler]->removeConnection($con);
+				if($handler)
+					$this->uriHandlers[$handler]->removeConnection($con);
 
-			$this->_connections->detach($socket->getConnection());
+				$this->_connections->detach($socket->getConnection());
+			}
+		} catch (Exception $e){
+			$this->say("Exception occurred while handling message:\r\n".$e->getTraceAsString());
 		}
 
 		$this->sockets->detach($socket);

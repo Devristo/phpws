@@ -30,11 +30,15 @@ class WebSocket{
 	}
 
 	public function onData($data){
-		$this->_lastChanged = time();
+		try{
+			$this->_lastChanged = time();
 
-		if($this->_connection)
-			$this->_connection->readFrame($data);
-		else $this->establishConnection($data);
+			if($this->_connection)
+				$this->_connection->readFrame($data);
+			else $this->establishConnection($data);
+		} catch (Exception $e){
+			$this->disconnect();
+		}
 	}
 
 	public function onMessage(IWebSocketMessage $m){

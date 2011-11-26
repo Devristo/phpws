@@ -64,13 +64,13 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 	}
 
 	public function setHeaders($headers){
-		$this->headers = $headers;
+		$this->_headers = $headers;
 
-		if(array_key_exists('Cookie', $this->headers) && is_array($this->headers['Cookie'])) {
+		if(array_key_exists('Cookie', $this->_headers) && is_array($this->_headers['Cookie'])) {
 			$this->cookie = array();
 		} else {
-			if(array_key_exists("Cookie", $this->headers)){
-			 	$this->_cookies = WebSocketFunctions::cookie_parse($this->headers['Cookie']);
+			if(array_key_exists("Cookie", $this->_headers)){
+			 	$this->_cookies = WebSocketFunctions::cookie_parse($this->_headers['Cookie']);
 			}else $this->_cookies = array();
 		}
 	}
@@ -80,11 +80,11 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 	}
 
 	public function getUriRequested(){
-		return $this->headers['GET'];
+		return $this->_headers['GET'];
 	}
 
 	public function getAdminKey(){
-		return isset($this->headers['Admin-Key']) ? $this->headers['Admin-Key'] : null;
+		return isset($this->_headers['Admin-Key']) ? $this->_headers['Admin-Key'] : null;
 	}
 }
 
@@ -181,9 +181,13 @@ class WebSocketConnectionHybi extends WebSocketConnection{
 
 
 	public function sendString($msg){
-		$m = WebSocketMessage::create($msg);
+		try{
+			$m = WebSocketMessage::create($msg);
 
-		return $this->sendMessage($m);
+			return $this->sendMessage($m);
+		}catch(Exception $e){
+			$this->disconnect();
+		}
 	}
 
 	public function disconnect(){

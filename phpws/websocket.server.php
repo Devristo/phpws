@@ -41,7 +41,7 @@ class WebSocketServer implements WebSocketObserver{
 	/**
 	 *
 	 * Enter description here ...
-	 * @var IWebSocketResourceHandler[]
+	 * @var IWebSocketUriHandler[]
 	 */
 	protected $uriHandlers = array();
 
@@ -178,15 +178,15 @@ class WebSocketServer implements WebSocketObserver{
 	 * @param stdClass $obj
 	 */
 	protected function dispatchAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		if($this->_connections[$user] != null && array_key_exists($this->_connections[$user], $this->uriHandlers)){
+
+		if(array_key_exists($this->_connections[$user],$this->uriHandlers)){
 			$this->uriHandlers[$this->_connections[$user]]->onAdminMessage($user, $msg);
-		} else {
-
-			foreach($this->_observers as $o){
-				$o->onAdminMessage($user, $msg);
-			}
-
 		}
+
+		foreach($this->_observers as $o){
+			$o->onAdminMessage($user, $msg);
+		}
+
 	}
 
 	public function addObserver(IWebSocketServerObserver $o){
@@ -352,6 +352,18 @@ class WebSocketServer implements WebSocketObserver{
 
 	protected function getAdminKey(){
 		return $this->adminKey;
+	}
+
+	public function isAdmin(WebSocketConnection $con){
+		return $this->getAdminKey() === $con->getAdminKey();
+	}
+
+	/**
+	 *
+	 * @param IWebSocketUriHandler $uri
+	 */
+	public function getUriHandler($uri){
+		return $this->uriHandlers[$uri];
 	}
 }
 

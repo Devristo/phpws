@@ -33,6 +33,7 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 	protected $_headers = array();
 	protected $_socket = null;
 	protected $_cookies = array();
+	public $parameters = null;
 
 	public function __construct(WebSocket $socket, array $headers){
 		$this->setHeaders($headers);
@@ -73,6 +74,8 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 			 	$this->_cookies = WebSocketFunctions::cookie_parse($this->_headers['Cookie']);
 			}else $this->_cookies = array();
 		}
+
+		$this->getQueryParts();
 	}
 
 	public function getCookies(){
@@ -81,6 +84,31 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 
 	public function getUriRequested(){
 		return $this->_headers['GET'];
+	}
+
+	protected function getQueryParts(){
+		$url = $this->getUriRequested();
+
+		if(($pos = strpos($url,"?")) == -1){
+			$this->parameters = array();
+		}
+
+
+		$q = substr($url, strpos($url,"?") + 1);
+
+
+		$kvpairs = explode("&", $q);
+		$this->parameters = array();
+
+		foreach($kvpairs  as $kv){
+			if(strpos($kv, "=") == -1)
+				continue;
+
+			@list($k, $v) = explode("=",$kv);
+
+			$this->parameters[urldecode($k)] = urldecode($v);
+		}
+
 	}
 
 	public function getAdminKey(){

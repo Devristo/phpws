@@ -230,9 +230,8 @@ class WebSocketConnectionHixie extends WebSocketConnection{
 	private $_clientHandshake;
 
 	public function __construct(WebSocket $socket, array $headers, $clientHandshake){
-		parent::__construct($socket, $headers);
-
 		$this->_clientHandshake = $clientHandshake;
+		parent::__construct($socket, $headers);
 	}
 
 	public function sendHandshakeResponse(){

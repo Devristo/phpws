@@ -270,7 +270,7 @@ class WebSocketConnectionHixie extends WebSocketConnection{
 
 
 	public function sendString($msg){
-		$m = WebSocketMessage76::create($data);
+		$m = WebSocketMessage76::create($msg);
 
 		return $this->sendMessage($m);
 	}

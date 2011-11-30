@@ -18,7 +18,6 @@ class test extends UnitTestCase {
 	function test_127chars(){
 
 		$str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-		echo strlen($str);
 
 		$msg = WebSocketMessage::create($str);
 

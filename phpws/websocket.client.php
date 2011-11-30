@@ -115,6 +115,9 @@ class WebSocket{
 		socket_write($this->socket, $msg,strlen($msg));
 	}
 
+	/**
+	 * @return WebSocketFrame
+	 */
 	public function readFrame(){
 		$data = socket_read($this->socket,2048,PHP_BINARY_READ);
 
@@ -143,6 +146,19 @@ class WebSocket{
 	}
 
 	public function close(){
+		/**
+		 * @var WebSocketFrame
+		 */
+		$frame = null;
+		$this->sendFrame(WebSocketFrame::create(WebSocketOpcode::CloseFrame));
+
+		$i = 0;
+		do{
+			$i++;
+			$frame =  @$this->readFrame();
+		}while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
+
+
 		socket_close($this->socket);
 	}
 

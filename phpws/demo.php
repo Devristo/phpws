@@ -60,7 +60,7 @@ class DemoSocketServer implements IWebSocketServerObserver{
 		$this->say("[DEMO] Admin Message received!");
 
 		$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-		$this->sendFrame($user, $frame);
+		$user->sendFrame($frame);
 	}
 
 	public function say($msg){

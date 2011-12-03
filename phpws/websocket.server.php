@@ -32,6 +32,11 @@ class WebSocketServer implements WebSocketObserver{
 
 	protected $_connections = array();
 
+	/**
+	 * @var IWebSocketServerObserver[]
+	 */
+	protected $_observers = array();
+
 	protected $debug = true;
 
 	protected $purgeUserTimeOut = null;
@@ -292,6 +297,15 @@ class WebSocketServer implements WebSocketObserver{
 
 		$this->addConnectionToUriHandler($con, $uri);
 
+		foreach($this->_observers as $o){
+			/**
+			 * @var @o IWebSocketServerObserver
+			 */
+
+			$o->onConnect($con);
+
+		}
+
 	}
 
 	public function onMessage(IWebSocketConnection $connection, IWebSocketMessage $msg){
@@ -305,8 +319,9 @@ class WebSocketServer implements WebSocketObserver{
 	}
 
 	public function onDisconnect(WebSocket $socket){
+		$con = $socket->getConnection();
 		try{
-			if($con = $socket->getConnection()){
+			if($con){
 				$handler = $this->_connections[$con];
 
 				if($handler)
@@ -316,6 +331,18 @@ class WebSocketServer implements WebSocketObserver{
 			}
 		} catch (Exception $e){
 			$this->say("Exception occurred while handling message:\r\n".$e->getTraceAsString());
+		}
+
+
+		if($con){
+			foreach($this->_observers as $o){
+				/**
+				 * @var @o IWebSocketServerObserver
+				 */
+
+				$o->onDisconnect($con);
+
+			}
 		}
 
 		$this->sockets->detach($socket);

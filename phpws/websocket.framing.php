@@ -139,6 +139,10 @@ class WebSocketFrame implements IWebSocketFrame{
 		return $this->opcode;
 	}
 
+	public static function decode($raw){
+		return self::consume($raw, $unconsumed = NULL);
+	}
+
 	public function encode(){
 		$this->payloadLength = strlen($this->payloadData);
 
@@ -186,8 +190,11 @@ class WebSocketFrame implements IWebSocketFrame{
 		return $encoded;
 	}
 
-	public static function decode($raw){
+	public static function consume($raw, &$unconsumed){
 		$frame = new self();
+
+		if(strlen($raw) < 2)
+			return false;
 
 		// Read the first two bytes, then chop them off
 		list($firstByte, $secondByte) = substr($raw,0,2);
@@ -223,12 +230,20 @@ class WebSocketFrame implements IWebSocketFrame{
 			$raw = substr($raw,4);
 		}
 
-		if(strlen($raw) != $frame->payloadLength)
-			throw new WebSocketFrameSizeMismatch($frame);
+		if(strlen($raw) < $frame->payloadLength)
+			return FALSE;
+
+		$payload = substr($raw, 0, $frame->payloadLength);
+
+		// Return unconsumed part
+		if($unconsumed !== null){
+			$unconsumed = substr($raw, $frame->payloadLength);
+		}
+
 
 		if($frame->mask)
-			$frame->payloadData = self::rotMask($raw, $frame->maskingKey);
-		else $frame->payloadData = $raw;
+			$frame->payloadData = self::rotMask($payload, $frame->maskingKey);
+		else $frame->payloadData = $payload;
 
 		return $frame;
 	}

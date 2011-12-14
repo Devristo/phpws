@@ -24,6 +24,25 @@ class test extends UnitTestCase {
 		$this->assertEqual($input, $msg->getData());
 	}
 
+	function test_DoubleEchoResourceHandlerResponse(){
+		$input = "Hello World!";
+		$msg = WebSocketMessage::create($input);
+
+		$client = new WebSocket("ws://127.0.0.1:12345/echo/");
+		$client->setTimeOut(1000);
+		$client->open();
+		$client->sendMessage($msg);
+		$client->sendMessage($msg);
+
+		$msg = $client->readMessage();
+		$msg2= $client->readMessage();
+
+		$client->close();
+		$this->assertEqual($input, $msg->getData());
+
+		$this->assertEqual($input, $msg2->getData());
+	}
+
 	function test_AdminPing(){
 		$msg = WebSocketAdminMessage::create("shutdown");
 

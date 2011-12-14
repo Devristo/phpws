@@ -52,13 +52,16 @@ class WebSocket{
 	public function establishConnection($data){
 		$this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data);
 
+		if($this->_connection instanceof WebSocketConnectionFlash)
+			return;
+
 		foreach($this->_observers as $observer){
 			$observer->onConnectionEstablished($this);
 		}
 	}
 
 	public function write($data){
-		if(@socket_write($this->_socket, $data,strlen($data)) === false)
+		if(@fwrite($this->_socket, $data,strlen($data)) === false)
 			$this->disconnect();
 	}
 
@@ -73,7 +76,7 @@ class WebSocket{
 	}
 
 	public function disconnect(){
-		socket_close($this->_socket);
+		@fclose($this->_socket);
 
 		foreach($this->_observers as $observer){
 			$observer->onDisconnect($this);

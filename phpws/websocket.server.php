@@ -80,11 +80,15 @@ class WebSocketServer implements WebSocketObserver{
 
 		$this->FLASH_POLICY_FILE = str_replace('to-ports="*','to-ports="'.$port,$this->FLASH_POLICY_FILE);
 
-		$this->master=socket_create(AF_INET, SOCK_STREAM, SOL_TCP)     or die("socket_create() failed");
-		socket_set_option($this->master, SOL_SOCKET, SO_REUSEADDR, 1)  or die("socket_option() failed");
+		//$this->master=socket_create(AF_INET, SOCK_STREAM, SOL_TCP)     or die("socket_create() failed");
+
+		$this->master = stream_socket_server("tcp://0.0.0.0:{$port}");
+
+
+		/*socket_set_option($this->master, SOL_SOCKET, SO_REUSEADDR, 1)  or die("socket_option() failed");
 
 		socket_bind($this->master, $address, $port)                    or die("socket_bind() failed");
-		socket_listen($this->master,20)                                or die("socket_listen() failed");
+		socket_listen($this->master,20)                                or die("socket_listen() failed");*/
 
 		$this->say("PHP WebSocket Server");
 		$this->say("========================================");
@@ -109,8 +113,10 @@ class WebSocketServer implements WebSocketObserver{
 
 			// Retreive sockets which are 'Changed'
 			$changed = $this->getResources();
+			$write = null;
+			$except = null;
 
-			socket_select($changed,$write=NULL,$except=NULL,NULL);
+			stream_select($changed,$write,$except,NULL);
 
 			$this->debug("Socket selected");
 
@@ -123,7 +129,9 @@ class WebSocketServer implements WebSocketObserver{
 
 
 					// TODO: only reads up to 2048 bytes ?
-					$bytes = @socket_recv($resource, $buffer, 2048, 0);
+					$buffer = @fread($resource, 2048);
+					$bytes = strlen($buffer);
+
 					$socket = $this->getSocketByResource($resource);
 					$this->debug($bytes);
 
@@ -144,8 +152,8 @@ class WebSocketServer implements WebSocketObserver{
 
 	private function acceptSocket(){
 		try{
-			$client=socket_accept($this->master);
-			if($client<0){
+			$client=stream_socket_accept($this->master);
+			if($client === false){
 				self::log('socket_accept() failed'); continue;
 			}
 

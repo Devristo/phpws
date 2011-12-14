@@ -19,8 +19,10 @@ class WebSocket{
 
 		$this->url = $url;
 
-		if(in_array($parts['scheme'], array('ws')) === false)
+		if(in_array($parts['scheme'], array('ws','wss')) === false)
 			throw new WebSocketInvalidUrlScheme();
+
+		$this->scheme = $parts['scheme'];
 
 		$this->host = $parts['host'];
 		$this->port = $parts['port'];
@@ -34,15 +36,15 @@ class WebSocket{
 		if(isset($parts['query']))
 			$this->requestUri .= "?".$parts['query'];
 
-		$this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-		$this->setTimeOut(1);
-
 		$this->buildHeaderArray();
 	}
 
 	public function setTimeOut($seconds){
-		socket_set_option($this->socket,SOL_SOCKET, SO_RCVTIMEO, array("sec" => $seconds, "usec" => 0));
-		socket_set_option($this->socket,SOL_SOCKET, SO_SNDTIMEO, array("sec" => $seconds, "usec" => 0));
+		$this->_timeOut = $seconds;
+	}
+
+	public function getTimeOut(){
+		return $this->_timeOut;
 	}
 
 	/**
@@ -50,14 +52,18 @@ class WebSocket{
 	 * TODO: Check server response!
 	 */
 	public function open(){
-		socket_connect($this->socket, $this->host, $this->port);
+		$errno = $errstr = null;
+
+		$protocol = $this->scheme == 'ws' ? "tcp" : "ssl";
+
+		$this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this->getTimeOut());// socket_connect($this->socket, $this->host, $this->port);
 
 		$buffer = $this->serializeHeaders();
 
-		socket_write($this->socket, $buffer, strlen($buffer));
+		fwrite($this->socket, $buffer, strlen($buffer));
 
 		// wait for response
-		$buffer = socket_read($this->socket, 2048,PHP_BINARY_READ);
+		$buffer = fread($this->socket, 2048);
 		$headers = WebSocketFunctions::parseHeaders($buffer);
 
 		if($headers['Sec-Websocket-Accept'] != WebSocketFunctions::calcHybiResponse($this->handshakeChallenge)){
@@ -112,14 +118,14 @@ class WebSocket{
 
 	public function sendFrame(IWebSocketFrame $frame){
 		$msg = $frame->encode();
-		socket_write($this->socket, $msg,strlen($msg));
+		fwrite($this->socket, $msg,strlen($msg));
 	}
 
 	/**
 	 * @return WebSocketFrame
 	 */
 	public function readFrame(){
-		$data = socket_read($this->socket,2048,PHP_BINARY_READ);
+		$data = fread($this->socket,2048);
 
 		if($data === false)
 			return null;
@@ -159,7 +165,7 @@ class WebSocket{
 		}while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
 
 
-		socket_close($this->socket);
+		fclose($this->socket);
 	}
 
 }

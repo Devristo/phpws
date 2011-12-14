@@ -7,7 +7,7 @@ class WebSocketConnectionFactory{
 		if(isset($headers['Sec-Websocket-Key1'])) {
 			return new WebSocketConnectionHixie($socket, $headers, $data);
 		} else if(strpos($data,'<policy-file-request/>') === 0) {
-			return new WebSocketConnectionFlash($data);
+			return new WebSocketConnectionFlash($socket, $data);
 		} else{
 			return new WebSocketConnectionHybi($socket, $headers);
 		}
@@ -114,10 +114,15 @@ abstract class WebSocketConnection implements IWebSocketConnection{
 	public function getAdminKey(){
 		return isset($this->_headers['Admin-Key']) ? $this->_headers['Admin-Key'] : null;
 	}
+
+	public function getSocket(){
+		return $this->_socket;
+	}
 }
 
 class WebSocketConnectionFlash{
-	public function __construct($data){
+	public function __construct($socket, $data){
+		$this->_socket = $socket;
 		$this->_socket->onFlashXMLRequest($this);
 	}
 
@@ -126,12 +131,15 @@ class WebSocketConnectionFlash{
 	}
 
 	public function disconnect(){
-		$this->_socket->close();
+		$this->_socket->disconnect();
 	}
 }
 
 class WebSocketConnectionHybi extends WebSocketConnection{
 	private $_openMessage = null;
+
+	private $_buffer = "";
+
 
 	public function sendHandshakeResponse(){
 		// Check for newer handshake
@@ -153,11 +161,18 @@ class WebSocketConnectionHybi extends WebSocketConnection{
 	}
 
 	public function readFrame($data){
-		$frame = WebSocketFrame::decode($data);
+		$unconsumed = "";
 
-		if(WebSocketOpcode::isControlFrame($frame->getType()))
-			$this->processControlFrame($frame);
-		else $this->processMessageFrame($frame);
+
+
+		while($frame = WebSocketFrame::consume($data, &$unconsumed)) {
+			$data = $unconsumed;
+			$this->_buffer = $unconsumed;
+
+			if(WebSocketOpcode::isControlFrame($frame->getType()))
+				$this->processControlFrame($frame);
+			else $this->processMessageFrame($frame);
+		}
 	}
 
 	/**

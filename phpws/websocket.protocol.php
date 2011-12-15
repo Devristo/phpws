@@ -137,9 +137,7 @@ class WebSocketConnectionFlash{
 
 class WebSocketConnectionHybi extends WebSocketConnection{
 	private $_openMessage = null;
-
-	private $_buffer = "";
-
+	private $lastFrame = null;
 
 	public function sendHandshakeResponse(){
 		// Check for newer handshake
@@ -161,17 +159,17 @@ class WebSocketConnectionHybi extends WebSocketConnection{
 	}
 
 	public function readFrame($data){
-		$unconsumed = "";
-
-
-
-		while($frame = WebSocketFrame::consume($data, &$unconsumed)) {
-			$data = $unconsumed;
-			$this->_buffer = $unconsumed;
-
-			if(WebSocketOpcode::isControlFrame($frame->getType()))
-				$this->processControlFrame($frame);
-			else $this->processMessageFrame($frame);
+	  while(!empty($data))
+	  {
+  		$frame = WebSocketFrame::decode($data, $this->lastFrame);
+  		if($frame->isReady()){
+    		if(WebSocketOpcode::isControlFrame($frame->getType()))
+    			$this->processControlFrame($frame);
+    		else $this->processMessageFrame($frame);
+    		$this->lastFrame = null;
+  		} else {
+  		  $this->lastFrame = $frame;
+  		}
 		}
 	}
 

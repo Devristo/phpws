@@ -51,7 +51,7 @@ interface IWebSocketFrame{
 	 * Deserialize a binary string into a IWebSocketFrame
 	 * @return string Serialized binary string
 	 */
-	public static function decode($string);
+	public static function decode(&$string, $head = null);
 
 	/**
 	 * @return string Payload Data inside the frame
@@ -92,7 +92,9 @@ class WebSocketFrame implements IWebSocketFrame{
 	protected $payloadLength = 0;
 	protected $maskingKey = 0;
 
-	protected $payloadData = 0;
+	protected $payloadData = '';
+
+	protected $actualLength = 0;
 
 	private function __construct(){	}
 
@@ -137,10 +139,6 @@ class WebSocketFrame implements IWebSocketFrame{
 
 	public function getType(){
 		return $this->opcode;
-	}
-
-	public static function decode($raw){
-		return self::consume($raw, $unconsumed = NULL);
 	}
 
 	public function encode(){
@@ -190,62 +188,74 @@ class WebSocketFrame implements IWebSocketFrame{
 		return $encoded;
 	}
 
-	public static function consume($raw, &$unconsumed){
-		$frame = new self();
+	public static function decode(&$raw, $head = null){
+	  if($head != null){
+	    $frame = $head;
+	  } else {
+		  $frame = new self();
 
-		if(strlen($raw) < 2)
-			return false;
+  		// Read the first two bytes, then chop them off
+  		list($firstByte, $secondByte) = substr($raw,0,2);
+  		$raw = substr($raw,2);
 
-		// Read the first two bytes, then chop them off
-		list($firstByte, $secondByte) = substr($raw,0,2);
-		$raw = substr($raw,2);
+  		$firstByte = ord($firstByte);
+  		$secondByte = ord($secondByte);
 
-		$firstByte = ord($firstByte);
-		$secondByte = ord($secondByte);
+  		$frame->FIN = self::IsBitSet($firstByte, 7);
+  		$frame->RSV1 = self::IsBitSet($firstByte, 6);
+  		$frame->RSV2 = self::IsBitSet($firstByte, 5);
+  		$frame->RSV3 = self::IsBitSet($firstByte, 4);
 
-		$frame->FIN = self::IsBitSet($firstByte, 7);
-		$frame->RSV1 = self::IsBitSet($firstByte, 6);
-		$frame->RSV2 = self::IsBitSet($firstByte, 5);
-		$frame->RSV3 = self::IsBitSet($firstByte, 4);
+  		$frame->mask = self::IsBitSet($secondByte, 7);
 
-		$frame->mask = self::IsBitSet($secondByte, 7);
+  		$frame->opcode = ($firstByte & 0x0F);
 
-		$frame->opcode = ($firstByte & 0x0F);
-
-		$len = $secondByte & ~128;
+  		$len = $secondByte & ~128;
 
 
-		if($len <= 125)
-			$frame->payloadLength = $len;
-		elseif($len == 126){
-			$frame->payloadLength = array_pop(unpack("nfirst", $raw));
-			$raw = substr($raw,2);
-		} elseif($len = 127) {
-			$frame->payloadLength = array_pop(unpack("nfirst", $raw));
-			$raw = substr($raw,4);
-		}
+  		if($len <= 125)
+  			$frame->payloadLength = $len;
+  		elseif($len == 126){
+  			$frame->payloadLength = array_pop(unpack("nfirst", $raw));
+  			$raw = substr($raw,2);
+  		} elseif($len = 127) {
+  			$frame->payloadLength = array_pop(unpack("nfirst", $raw));
+  			$raw = substr($raw,4);
+  		}
 
-		if($frame->mask){
-			$frame->maskingKey = substr($raw,0,4);
-			$raw = substr($raw,4);
-		}
+  		if($frame->mask){
+  			$frame->maskingKey = substr($raw,0,4);
+  			$raw = substr($raw,4);
+  		}
+	  }
 
-		if(strlen($raw) < $frame->payloadLength)
-			return FALSE;
+    $fullLength = min($frame->payloadLength, strlen($raw));
+		$frame->actualLength += $fullLength;
 
-		$payload = substr($raw, 0, $frame->payloadLength);
-
-		// Return unconsumed part
-		if($unconsumed !== null){
-			$unconsumed = substr($raw, $frame->payloadLength);
-		}
-
+		if($fullLength < strlen($raw))
+		{
+		  $frameData = substr($raw, 0, $fullLength);
+		  $raw = substr($raw, $fullLength);
+    }
+    else
+    {
+      $frameData = $raw;
+      $raw = '';
+    }
 
 		if($frame->mask)
-			$frame->payloadData = self::rotMask($payload, $frame->maskingKey);
-		else $frame->payloadData = $payload;
+  			$frame->payloadData .= self::rotMask($frameData, $frame->maskingKey);
+		else
+  		$frame->payloadData .= $frameData;
 
 		return $frame;
+	}
+
+	public function isReady(){
+	  if($this->actualLength > $this->payloadLength){
+	    throw new WebSocketFrameSizeMismatch($this);
+	  }
+	  return ($this->actualLength == $this->payloadLength);
 	}
 
 	public function isFinal(){
@@ -281,7 +291,7 @@ class WebSocketFrame76 implements IWebSocketFrame{
 		return $this->opcode;
 	}
 
-	public static function decode($str){
+	public static function decode(&$str, $head = null){
 		$o = new self();
 		$o->payloadData = substr($str, 1, strlen($str) - 2);
 

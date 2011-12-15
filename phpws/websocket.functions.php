@@ -1,5 +1,16 @@
 <?php
 
+// mamta
+class HixieKey {
+	public $number;
+	public $key;
+
+	public function __construct($number, $key){
+		$this->number = $number;
+		$this->key = $key;
+	}
+}
+
 class WebSocketProtocolVersions{
 	const HIXIE_76 = 0;
 	const HYBI_8 = 8;
@@ -115,5 +126,52 @@ class WebSocketFunctions{
 	*/
 	public static function say($msg = ""){
 		echo date("Y-m-d H:i:s")." | ".$msg."\n";
+	}
+
+	// mamta
+	public static function genKey3(){
+		return "".chr(rand(0, 255)).chr(rand(0, 255)).chr(rand(0, 255)).chr(rand(0, 255))
+		.chr(rand(0, 255)).chr(rand(0, 255)).chr(rand(0, 255)).chr(rand(0, 255));
+	}
+
+	public static function randHixieKey() {
+		$_MAX_INTEGER = (1 << 32) -1;
+		#$_AVAILABLE_KEY_CHARS = range(0x21, 0x2f + 1) + range(0x3a, 0x7e + 1);
+		#$_MAX_CHAR_BYTE = (1<<8) -1;
+
+		# $spaces_n = 2;
+		$spaces_n = rand(1, 12); // random.randint(1, 12)
+		$max_n = $_MAX_INTEGER / $spaces_n;
+		# $number_n = 123456789;
+		$number_n = rand(0, $max_n); // random.randint(0, max_n)
+		$product_n = $number_n * $spaces_n;
+		$key_n = "".$product_n;
+		# $range = 3; //
+		$range = rand(1, 12);
+		for ($i=0; $i<$range; $i++) {
+			#i in range(random.randint(1, 12)):
+			if ( rand(0,1) > 0 ) {
+			$c = chr(rand(0x21, 0x2f + 1)); #random.choice(_AVAILABLE_KEY_CHARS)
+		} else {
+			$c = chr(rand(0x3a, 0x7e + 1)); #random.choice(_AVAILABLE_KEY_CHARS)
+		}
+		# $c = chr(65);
+		$len = strlen($key_n);
+		# $pos = 2;
+		$pos = rand(0, $len);
+		$key_n1 = substr($key_n,0,$pos);
+		$key_n2 = substr($key_n,$pos);
+		$key_n = $key_n1.$c.$key_n2;
+		}
+		for ($i=0; $i<$spaces_n; $i++){
+			$len = strlen($key_n);
+			# $pos = 2;
+			$pos = rand(1, $len-1);
+			$key_n1 = substr($key_n,0,$pos);
+			$key_n2 = substr($key_n,$pos);
+			$key_n = $key_n1." ".$key_n2;
+		}
+
+		return new HixieKey($number_n, $key_n);
 	}
 }

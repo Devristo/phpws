@@ -1,11 +1,11 @@
 <?php
-require_once("websocket.functions.php");
-require_once("websocket.exceptions.php");
-require_once("websocket.framing.php");
-require_once("websocket.message.php");
-require_once("websocket.resources.php");
+require_once ("websocket.functions.php");
+require_once ("websocket.exceptions.php");
+require_once ("websocket.framing.php");
+require_once ("websocket.message.php");
+require_once ("websocket.resources.php");
 
-class WebSocket{
+class WebSocket {
 	protected $socket;
 	protected $handshakeChallenge;
 	protected $hixieKey1;
@@ -19,194 +19,181 @@ class WebSocket{
 	protected $hybi;
 
 	// mamta
-	public function __construct($url, $useHybie = true){
-		$this->hybi = $useHybie;
+	public function __construct($url, $useHybie = true) {
+		$this -> hybi = $useHybie;
 		$parts = parse_url($url);
 
-		$this->url = $url;
+		$this -> url = $url;
 
-		if(in_array($parts['scheme'], array('ws','wss')) === false)
+		if (in_array($parts['scheme'], array('ws', 'wss')) === false)
 			throw new WebSocketInvalidUrlScheme();
 
-		$this->scheme = $parts['scheme'];
+		$this -> scheme = $parts['scheme'];
 
-		$this->host = $parts['host'];
-		$this->port = $parts['port'];
+		$this -> host = $parts['host'];
+		$this -> port = $parts['port'];
 
-		$this->origin = 'http://'.$this->host;
+		$this -> origin = 'http://' . $this -> host;
 
-		if(isset($parts['path']))
-		$this->requestUri = $parts['path'];
-		else $this->requestUri = "/";
+		if (isset($parts['path']))
+			$this -> requestUri = $parts['path'];
+		else
+			$this -> requestUri = "/";
 
-		if(isset($parts['query']))
-			$this->requestUri .= "?".$parts['query'];
+		if (isset($parts['query']))
+			$this -> requestUri .= "?" . $parts['query'];
 
 		// mamta
 		if ($useHybie) {
-			$this->buildHeaderArray();
+			$this -> buildHeaderArray();
 		} else {
-			$this->buildHeaderArrayHixie76();
+			$this -> buildHeaderArrayHixie76();
 		}
 	}
 
-	public function setTimeOut($seconds){
-		$this->_timeOut = $seconds;
+	public function setTimeOut($seconds) {
+		$this -> _timeOut = $seconds;
 	}
 
-	public function getTimeOut(){
-		return $this->_timeOut;
+	public function getTimeOut() {
+		return $this -> _timeOut;
 	}
 
 	/**
 	 * TODO: Proper header generation!
 	 * TODO: Check server response!
 	 */
-	public function open(){
+	public function open() {
 		$errno = $errstr = null;
 
-		$protocol = $this->scheme == 'ws' ? "tcp" : "ssl";
+		$protocol = $this -> scheme == 'ws' ? "tcp" : "ssl";
 
-		$this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this->getTimeOut());// socket_connect($this->socket, $this->host, $this->port);
+		$this -> socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this -> getTimeOut());
+		// socket_connect($this->socket, $this->host, $this->port);
 
-		$buffer = $this->serializeHeaders();
+		$buffer = $this -> serializeHeaders();
 
-		fwrite($this->socket, $buffer, strlen($buffer));
+		fwrite($this -> socket, $buffer, strlen($buffer));
 
 		// wait for response
-		$buffer = fread($this->socket, 2048);
+		$buffer = fread($this -> socket, 2048);
 		$headers = WebSocketFunctions::parseHeaders($buffer);
 
-		if($headers['Sec-Websocket-Accept'] != WebSocketFunctions::calcHybiResponse($this->handshakeChallenge)){
+		if ($headers['Sec-Websocket-Accept'] != WebSocketFunctions::calcHybiResponse($this -> handshakeChallenge)) {
 			return false;
 		}
 
 		return true;
 	}
 
-	private function serializeHeaders(){
+	private function serializeHeaders() {
 		$str = '';
 
-		foreach($this->headers as $k => $v){
-			$str .= $k." ".$v."\r\n";
+		foreach ($this->headers as $k => $v) {
+			$str .= $k . " " . $v . "\r\n";
 		}
 		# mamta add key 3 needed for the handshake/swithching protocol compatible with glassfish
 		$key3 = WebSocketFunctions::genKey3();
-		$str .= "\r\n".$key3;
+		$str .= "\r\n" . $key3;
 
 		return $str;
 	}
 
-	public function addHeader($key, $value){
-		$this->headers[$key.":"] = $value;
+	public function addHeader($key, $value) {
+		$this -> headers[$key . ":"] = $value;
 	}
 
-	protected function buildHeaderArray(){
-		$this->handshakeChallenge = WebSocketFunctions::randHybiKey();
+	protected function buildHeaderArray() {
+		$this -> handshakeChallenge = WebSocketFunctions::randHybiKey();
 
-		$this->headers = array(
-			"GET" => "{$this->url} HTTP/1.1",
-			"Connection:" => "Upgrade",
-			"Host:" => "{$this->host}:{$this->port}",
-			"Sec-WebSocket-Key:" => "{$this->handshakeChallenge}",
-			"Sec-WebSocket-Origin:" => "{$this->origin}",
-			"Sec-WebSocket-Version:" => 8,
-			"Upgrade:" => "websocket"
-			);
+		$this -> headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}:{$this->port}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Sec-WebSocket-Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 8, "Upgrade:" => "websocket");
 
 		return $headers;
 	}
 
 	# mamta: hixie 76
-	protected function buildHeaderArrayHixie76(){
-		$this->hixieKey1 = WebSocketFunctions::randHixieKey();
-		$this->hixieKey2 = WebSocketFunctions::randHixieKey();
-		$this->headers = array(
-			"GET" => "{$this->url} HTTP/1.1",
-			"Connection:" => "Upgrade",
-			"Host:" => "{$this->host}:{$this->port}",
-			"Origin:" => "{$this->origin}",
-			"Sec-WebSocket-Key1:" => "{$this->hixieKey1->key}",
-			"Sec-WebSocket-Key2:" => "{$this->hixieKey2->key}",
-			"Upgrade:" => "websocket",
-			"Sec-WebSocket-Protocol: " => "hiwavenet"
-			);
+	protected function buildHeaderArrayHixie76() {
+		$this -> hixieKey1 = WebSocketFunctions::randHixieKey();
+		$this -> hixieKey2 = WebSocketFunctions::randHixieKey();
+		$this -> headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}:{$this->port}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Key1:" => "{$this->hixieKey1->key}", "Sec-WebSocket-Key2:" => "{$this->hixieKey2->key}", "Upgrade:" => "websocket", "Sec-WebSocket-Protocol: " => "hiwavenet");
 
-		return $this->headers;
+		return $this -> headers;
 	}
 
-	public function send($string){
+	public function send($string) {
 
-		if($this->hybi)
+		if ($this -> hybi)
 			$msg = WebSocketMessage::create($string);
-		else $msg = WebSocketMessage76::create($string);
+		else
+			$msg = WebSocketMessage76::create($string);
 
-		$this->sendMessage($msg);
+		$this -> sendMessage($msg);
 	}
 
-	public function sendMessage(IWebSocketMessage $msg){
+	public function sendMessage(IWebSocketMessage $msg) {
 		// Sent all fragments
-		foreach($msg->getFrames() as $frame){
-			$this->sendFrame($frame);
+		foreach ($msg->getFrames() as $frame) {
+			$this -> sendFrame($frame);
 		}
 	}
 
-	public function sendFrame(IWebSocketFrame $frame){
-		$msg = $frame->encode();
-		fwrite($this->socket, $msg,strlen($msg));
+	public function sendFrame(IWebSocketFrame $frame) {
+		$msg = $frame -> encode();
+		fwrite($this -> socket, $msg, strlen($msg));
 	}
 
 	/**
 	 * @return WebSocketFrame
 	 */
-	public function readFrame(){
-		$data = fread($this->socket,2048);
+	public function readFrame() {
+		$data = fread($this -> socket, 2048);
 
-		if($data === false)
+		if ($data === false)
 			return null;
 
-		if($this->hybi)
+		if ($this -> hybi)
 			return WebSocketFrame::decode($data);
-		else return WebSocketFrame76::decode($data);
+		else
+			return WebSocketFrame76::decode($data);
 	}
 
-	public function readMessage(){
-		$frame = $this->readFrame();
+	public function readMessage() {
+		$frame = $this -> readFrame();
 
-		if($frame == null)
+		if ($frame == null)
 			return null;
 
-		if($this->hybi)
+		if ($this -> hybi)
 			$msg = WebSocketMessage::fromFrame($frame);
-		else $msg = WebSocketMessage76::fromFrame($frame);
+		else
+			$msg = WebSocketMessage76::fromFrame($frame);
 
+		while ($msg -> isFinalised() == false) {
+			$frame = $this -> readFrame();
 
-		while($msg->isFinalised() == false){
-			$frame = $this->readFrame();
-
-			if($frame != null)
-			$msg->takeFrame($this->readFrame());
-			else return null;
+			if ($frame != null)
+				$msg -> takeFrame($this -> readFrame());
+			else
+				return null;
 		}
 
 		return $msg;
 	}
 
-	public function close(){
+	public function close() {
 		/**
 		 * @var WebSocketFrame
 		 */
 		$frame = null;
-		$this->sendFrame(WebSocketFrame::create(WebSocketOpcode::CloseFrame));
+		$this -> sendFrame(WebSocketFrame::create(WebSocketOpcode::CloseFrame));
 
 		$i = 0;
-		do{
+		do {
 			$i++;
-			$frame =  @$this->readFrame();
-		}while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
+			$frame = @$this -> readFrame();
+		} while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
 
-
-		fclose($this->socket);
+		fclose($this -> socket);
 	}
 
 }

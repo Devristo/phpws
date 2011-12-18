@@ -14,7 +14,7 @@ class test extends UnitTestCase {
 		$input = "Hello World!";
 		$msg = WebSocketMessage::create($input);
 
-		$client = new WebSocket("ws://127.0.0.1:12345/echo/");
+		$client = new WebSocket("wss://127.0.0.1:12345/echo/");
 		$client->open();
 		$client->sendMessage($msg);
 
@@ -28,7 +28,7 @@ class test extends UnitTestCase {
 		$input = "Hello World!";
 		$msg = WebSocketMessage::create($input);
 
-		$client = new WebSocket("ws://127.0.0.1:12345/echo/");
+		$client = new WebSocket("wss://127.0.0.1:12345/echo/");
 		$client->setTimeOut(1000);
 		$client->open();
 		$client->sendMessage($msg);
@@ -46,7 +46,7 @@ class test extends UnitTestCase {
 	function test_AdminPing(){
 		$msg = WebSocketAdminMessage::create("shutdown");
 
-		$client = new WebSocketAdminClient("ws://127.0.0.1:12345/echo","superdupersecretkey");
+		$client = new WebSocketAdminClient("wss://127.0.0.1:12345/echo","superdupersecretkey");
 		$client->open();
 		$client->sendMessage($msg);
 
@@ -60,7 +60,7 @@ class test extends UnitTestCase {
 
 		$frame = WebSocketFrame::create(WebSocketOpcode::PingFrame);
 
-		$client = new WebSocket("ws://127.0.0.1:12345/");
+		$client = new WebSocket("wss://127.0.0.1:12345/");
 		$client->open();
 		$client->sendFrame($frame);
 
@@ -73,7 +73,7 @@ class test extends UnitTestCase {
 	function test_closeResponse(){
 		$frame = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
 
-		$client = new WebSocket("ws://127.0.0.1:12345/");
+		$client = new WebSocket("wss://127.0.0.1:12345/");
 		$client->open();
 		$client->sendFrame($frame);
 

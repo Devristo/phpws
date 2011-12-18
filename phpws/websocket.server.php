@@ -23,6 +23,8 @@ interface IWebSocketServerObserver{
 class WebSocketServer implements WebSocketObserver{
 	protected $master;
 
+	protected $_url;
+
 	/**
 	 *
 	 * Enter description here ...
@@ -40,6 +42,8 @@ class WebSocketServer implements WebSocketObserver{
 	protected $debug = true;
 
 	protected $purgeUserTimeOut = null;
+
+	protected $_context = null;
 
 	protected $adminKey;
 
@@ -67,44 +71,53 @@ class WebSocketServer implements WebSocketObserver{
 	 * @param IWebSocketMessage $msg The message that was received (can be WebSocketMessage76 or WebSocketMessage)
 	 */
 
-	public function __construct($address,$port, $adminKey){
-		error_reporting(E_ALL);
-		set_time_limit(0);
-
-		ob_implicit_flush();
-
-
-
+	public function __construct($url, $adminKey){
 		$this->adminKey = $adminKey;
 
-
-		$this->FLASH_POLICY_FILE = str_replace('to-ports="*','to-ports="'.$port,$this->FLASH_POLICY_FILE);
-
-		//$this->master=socket_create(AF_INET, SOCK_STREAM, SOL_TCP)     or die("socket_create() failed");
-
-		$this->master = stream_socket_server("tcp://0.0.0.0:{$port}");
-
-
-		/*socket_set_option($this->master, SOL_SOCKET, SO_REUSEADDR, 1)  or die("socket_option() failed");
-
-		socket_bind($this->master, $address, $port)                    or die("socket_bind() failed");
-		socket_listen($this->master,20)                                or die("socket_listen() failed");*/
-
-		$this->say("PHP WebSocket Server");
-		$this->say("========================================");
-		$this->say("Server Started : ".date('Y-m-d H:i:s'));
-		$this->say("Listening on   : ".$address.":".$port);
-		$this->say("========================================");
+		$this->_url = $url;
 
 		$this->sockets = new SplObjectStorage();
 		$this->_connections = new SplObjectStorage();
-		$this->sockets->attach(new WebSocket($this, $this->master));
+
+		$this->_context = stream_context_create();
+
+	}
+
+	public function getStreamContext(){
+		return $this->_context;
+	}
+
+	public function setStreamContext($context){
+		$this->_context = $context;
 	}
 
 	/**
 	 * Start the server
 	 */
 	public function run(){
+
+		error_reporting(E_ALL);
+		set_time_limit(0);
+
+		ob_implicit_flush();
+
+
+		$err = $errno = 0;
+
+		$port = parse_url($this->_url, PHP_URL_PORT);
+
+
+		$this->FLASH_POLICY_FILE = str_replace('to-ports="*','to-ports="'.$port,$this->FLASH_POLICY_FILE);
+
+		$this->master = stream_socket_server($this->_url, $err, $errno, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN, $this->_context);
+
+		$this->say("PHP WebSocket Server");
+		$this->say("========================================");
+		$this->say("Server Started : ".date('Y-m-d H:i:s'));
+		$this->say("Listening on   : ".$this->_url);
+		$this->say("========================================");
+
+		$this->sockets->attach(new WebSocket($this, $this->master));
 
 
 		while(true){
@@ -154,7 +167,7 @@ class WebSocketServer implements WebSocketObserver{
 		try{
 			$client=stream_socket_accept($this->master);
 			if($client === false){
-				self::log('socket_accept() failed'); continue;
+				WebSocketFunctions::say('socket_accept() failed');
 			}
 
 			$this->sockets->attach(new WebSocket($this, $client));

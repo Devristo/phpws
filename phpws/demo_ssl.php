@@ -38,10 +38,28 @@ class DemoSocketServer implements IWebSocketServerObserver{
 	protected $server;
 
 	public function __construct(){
-		$this->server = new WebSocketServer("tcp://0.0.0.0:12345", 'superdupersecretkey');
+		$this->server = new WebSocketServer("ssl://0.0.0.0:12345", 'superdupersecretkey');
 		$this->server->addObserver($this);
 
 		$this->server->addUriHandler("echo", new DemoEchoHandler());
+
+		$this->setupSSL();
+	}
+
+	private function getPEMFilename(){
+		return './democert.pem';
+	}
+
+	public function setupSSL(){
+		$context = stream_context_create();
+
+		// local_cert must be in PEM format
+		stream_context_set_option($context, 'ssl', 'local_cert', $this->getPEMFilename());
+
+		stream_context_set_option($context, 'ssl', 'allow_self_signed', true);
+		stream_context_set_option($context, 'ssl', 'verify_peer', false);
+
+		$this->server->setStreamContext($context);
 	}
 
 	public function onConnect(IWebSocketConnection $user){

@@ -140,12 +140,15 @@ class WebSocketServer implements WebSocketObserver{
 					$this->acceptSocket();
 				}else{
 					$buffer = '';
+					$buffsize = 2048;
 
 					$metadata['unread_bytes'] = 0;
 
 					do{
-						$buffer .= fread($resource, 4096);
+						$buffer .= fread($resource, $buffsize);
 						$metadata = stream_get_meta_data($resource);
+
+						$buffsize = min($buffsize, $metadata['unread_bytes']);
 
 					} while($metadata['unread_bytes'] > 0);
 

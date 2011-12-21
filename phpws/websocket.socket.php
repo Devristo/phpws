@@ -61,8 +61,10 @@ class WebSocket{
 	}
 
 	public function write($data){
-		if(@fwrite($this->_socket, $data,strlen($data)) === false)
+		if(WebSocketFunctions::writeWholeBuffer($this->_socket, $data)=== false){
 			$this->disconnect();
+		}
+
 	}
 
 	public function getLastChanged(){

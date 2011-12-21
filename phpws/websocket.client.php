@@ -76,7 +76,7 @@ class WebSocket {
 		fwrite($this -> socket, $buffer, strlen($buffer));
 
 		// wait for response
-		$buffer = fread($this -> socket, 2048);
+		$buffer = WebSocketFunctions::readWholeBuffer($this->socket);
 		$headers = WebSocketFunctions::parseHeaders($buffer);
 
 		if ($headers['Sec-Websocket-Accept'] != WebSocketFunctions::calcHybiResponse($this -> handshakeChallenge)) {
@@ -146,15 +146,15 @@ class WebSocket {
 	 * @return WebSocketFrame
 	 */
 	public function readFrame() {
-		$data = fread($this -> socket, 2048);
+		$buffer = WebSocketFunctions::readWholeBuffer($this->socket);
 
-		if ($data === false)
+		if ($buffer === false)
 			return null;
 
 		if ($this -> hybi)
-			return WebSocketFrame::decode($data);
+			return WebSocketFrame::decode($buffer);
 		else
-			return WebSocketFrame76::decode($data);
+			return WebSocketFrame76::decode($buffer);
 	}
 
 	public function readMessage() {

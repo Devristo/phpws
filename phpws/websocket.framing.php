@@ -211,9 +211,10 @@ class WebSocketFrame implements IWebSocketFrame {
 			elseif ($len == 126) {
 				$frame -> payloadLength = array_pop(unpack("nfirst", $raw));
 				$raw = substr($raw, 2);
-			} elseif ($len = 127) {
-				$frame -> payloadLength = array_pop(unpack("nfirst", $raw));
-				$raw = substr($raw, 4);
+			} elseif ($len == 127) {
+				list(,$h, $l) = unpack('N2', $raw);
+				$frame->payloadLength = ($l + ($h*0x0100000000));
+   				$raw = substr($raw,8);
 			}
 
 			if ($frame -> mask) {
@@ -222,7 +223,7 @@ class WebSocketFrame implements IWebSocketFrame {
 			}
 		}
 
-		$fullLength = min($frame -> payloadLength, strlen($raw));
+		$fullLength = min($frame->payloadLength - $frame->actualLength, strlen($raw));
 		$frame -> actualLength += $fullLength;
 
 		if ($fullLength < strlen($raw)) {

@@ -12,7 +12,7 @@
 var socket;
 
 function init(){
-  var host = "ws://localhost:12345/echo";
+	var host = "ws://" + window.location.host + ":12345/echo";
   try{
     socket = new WebSocket(host);
     log('WebSocket - status '+socket.readyState);

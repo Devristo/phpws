@@ -270,7 +270,7 @@ class WebSocketConnectionHixie extends WebSocketConnection {
 	}
 
 	public function readFrame($data) {
-		$m = WebSocketMessage76::create($data);
+		$m = WebSocketMessage76::fromFrame(WebSocketFrame76::decode($data));
 
 		$this->_socket->onMessage($m);
 	}

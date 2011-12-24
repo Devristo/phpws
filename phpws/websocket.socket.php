@@ -11,6 +11,11 @@ interface WebSocketObserver{
 class WebSocketSocket{
 	private $_socket = null;
 	private $_protocol = null;
+
+	/**
+	 *
+	 * @var IWebSocketConnection
+	 */
 	private $_connection = null;
 
 	private $_writeBuffer = '';
@@ -53,8 +58,6 @@ class WebSocketSocket{
 	}
 
 	public function onMessage(IWebSocketMessage $m){
-		WebSocketFunctions::say("MESSAGE RECEIVED {$m->getData()}");
-
 		foreach($this->_observers as $observer){
 			$observer->onMessage($this->getConnection(), $m);
 		}
@@ -85,9 +88,9 @@ class WebSocketSocket{
 	}
 
 	public function mayWrite(){
-		if(strlen($this->_writeBuffer) > 1024){
-			$buff = substr($this->_writeBuffer, 0,1024);
-			$this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 1024) : '' ;
+		if(strlen($this->_writeBuffer) > 4096){
+			$buff = substr($this->_writeBuffer, 0, 4096);
+			$this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 4096) : '' ;
 		} else {
 			$buff = $this->_writeBuffer;
 			$this->_writeBuffer = '';
@@ -116,7 +119,7 @@ class WebSocketSocket{
 	public function disconnect(){
 		$this->_disconnecting = true;
 
-		if($this->_writeBuffer != '')
+		if($this->_writeBuffer == '')
 			$this->close();
 	}
 

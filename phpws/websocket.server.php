@@ -127,20 +127,20 @@ class WebSocketServer implements WebSocketObserver{
 
 		while(true){
 
-			$this->debug("Blocking on socket_select()");
+			//$this->debug("Blocking on socket_select()");
 
 			// Retreive sockets which are 'Changed'
 			$changed = $this->getResources();
 			$write = $this->getWriteStreams();
 			$except = null;
 
-			if(stream_select($changed,$write,$except,NULL) === false){
+			if(@stream_select($changed,$write,$except,NULL) === false){
 				$this->say("Select failed!");
 				break;
 			}
 
 
-			$this->debug("Socket selected");
+			//$this->debug("Socket selected");
 
 
 			foreach($changed as $resource){
@@ -152,29 +152,31 @@ class WebSocketServer implements WebSocketObserver{
 
 					$bytes = strlen($buffer);
 
-					echo "Read $bytes bytes\n";
+					//echo "Read $bytes bytes\n";
 
 					$socket = $this->getSocketByResource($resource);
 
 					if($bytes === false){
 						$socket->disconnect();
 					}else if($bytes === 0) {
-						$socket->disconnect();
+						$socket->close();
 					} else if($socket != null){
 						$socket->onData($buffer);
 					}
 				}
 			}
 
-			foreach($write as $s){
-				$o = $this->getSocketByResource($s);
-				if($o != null)
-					$o->mayWrite();
+			if(is_array($write)){
+				foreach($write as $s){
+					$o = $this->getSocketByResource($s);
+					if($o != null)
+						$o->mayWrite();
 
+				}
 			}
 
 
-			$this->debug('Number of users connected: '.count($this->getConnections()));
+			//$this->debug('Number of users connected: '.count($this->getConnections()));
 			$this->purgeUsers();
 		}
 	}
@@ -376,12 +378,11 @@ class WebSocketServer implements WebSocketObserver{
 		}
 
 
-		if($con){
+		if($con instanceof IWebSocketConnection){
 			foreach($this->_observers as $o){
 				/**
 				 * @var @o IWebSocketServerObserver
 				 */
-
 				$o->onDisconnect($con);
 
 			}

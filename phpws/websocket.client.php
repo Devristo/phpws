@@ -156,9 +156,7 @@ class WebSocket implements WebSocketObserver {
 	public function readFrame() {
 		$buffer = WebSocketFunctions::readWholeBuffer($this->socket);
 
-		if(count($this->_frames) == 0){
-			$this->_frames = $this->_connection->readFrame($buffer);
-		}
+		$this->_frames = array_merge($this->_frames, $this->_connection->readFrame($buffer));
 
 		return array_shift($this->_frames);
 	}
@@ -185,7 +183,7 @@ class WebSocket implements WebSocketObserver {
 			$frame = @$this -> readFrame();
 		} while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
 
-		fclose($this -> socket);
+		@fclose($this -> socket);
 	}
 
 }

@@ -165,10 +165,12 @@ class WebSocketConnectionHybi extends WebSocketConnection {
 		while (!empty($data)) {
 			$frame = WebSocketFrame::decode($data, $this->lastFrame);
 			if ($frame->isReady()) {
+
 				if (WebSocketOpcode::isControlFrame($frame->getType()))
-				$this->processControlFrame($frame);
+					$this->processControlFrame($frame);
 				else
-				$this->processMessageFrame($frame);
+					$this->processMessageFrame($frame);
+
 				$this->lastFrame = null;
 			} else {
 				$this->lastFrame = $frame;

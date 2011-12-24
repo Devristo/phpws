@@ -13,7 +13,7 @@ require_once("websocket.server.php");
  */
 class DemoEchoHandler extends WebSocketUriHandler{
 	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		$this->say("[ECHO] {$msg->getData()}");
+		$this->say("[ECHO] ".strlen($msg->getData()). " bytes");
 		// Echo
 		$user->sendMessage($msg);
 	}
@@ -49,7 +49,7 @@ class DemoSocketServer implements IWebSocketServerObserver{
 	}
 
 	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
+		//$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
 	}
 
 	public function onDisconnect(IWebSocketConnection $user){

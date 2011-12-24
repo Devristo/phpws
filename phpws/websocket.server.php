@@ -109,13 +109,18 @@ class WebSocketServer implements WebSocketObserver{
 
 		$this->FLASH_POLICY_FILE = str_replace('to-ports="*','to-ports="'.$port,$this->FLASH_POLICY_FILE);
 
-		$this->master = stream_socket_server($this->_url, $err, $errno, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN, $this->_context);
+		$this->master = stream_socket_server($this->_url, $errno, $err, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN, $this->_context);
 
 		$this->say("PHP WebSocket Server");
 		$this->say("========================================");
 		$this->say("Server Started : ".date('Y-m-d H:i:s'));
 		$this->say("Listening on   : ".$this->_url);
 		$this->say("========================================");
+
+		if($this->master == false){
+			$this->say("Error: $err");
+			return;
+		}
 
 		$this->sockets->attach(new WebSocket($this, $this->master));
 
@@ -129,7 +134,11 @@ class WebSocketServer implements WebSocketObserver{
 			$write = null;
 			$except = null;
 
-			stream_select($changed,$write,$except,NULL);
+			if(stream_select($changed,$write,$except,NULL) === false){
+				$this->say("Select failed!");
+				break;
+			}
+
 
 			$this->debug("Socket selected");
 

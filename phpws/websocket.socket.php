@@ -2,18 +2,24 @@
 require_once("websocket.protocol.php");
 
 interface WebSocketObserver{
-	public function onDisconnect(WebSocket $s);
-	public function onConnectionEstablished(WebSocket $s);
+	public function onDisconnect(WebSocketSocket $s);
+	public function onConnectionEstablished(WebSocketSocket $s);
 	public function onMessage(IWebSocketConnection $s, IWebSocketMessage $msg);
 	public function onFlashXMLRequest(WebSocketConnectionFlash $connection);
 }
 
-class WebSocket{
+class WebSocketSocket{
 	private $_socket = null;
 	private $_protocol = null;
 	private $_connection = null;
 
+	private $_writeBuffer = '';
+
 	private $_lastChanged = null;
+
+	private $_disconnecting = false;
+
+	private $_immediateWrite = false;
 
 	/**
 	 *
@@ -22,9 +28,10 @@ class WebSocket{
 	 */
 	private $_observers = array();
 
-	public function __construct(WebSocketObserver $server, $socket){
+	public function __construct(WebSocketObserver $server, $socket, $immediateWrite = false){
 		$this->_socket = $socket;
 		$this->_lastChanged = time();
+		$this->_immediateWrite = $immediateWrite;
 
 		$this->addObserver($server);
 	}
@@ -39,6 +46,10 @@ class WebSocket{
 		} catch (Exception $e){
 			$this->disconnect();
 		}
+	}
+
+	public function setConnection(IWebSocketConnection $con){
+		$this->_connection = $con;
 	}
 
 	public function onMessage(IWebSocketMessage $m){
@@ -61,9 +72,34 @@ class WebSocket{
 	}
 
 	public function write($data){
-		if(WebSocketFunctions::writeWholeBuffer($this->_socket, $data)=== false){
-			$this->disconnect();
+		$this->_writeBuffer .= $data;
+
+		if($this->_immediateWrite == true){
+			while($this->_writeBuffer != '')
+				$this->mayWrite();
 		}
+	}
+
+	public function mustWrite(){
+		return strlen($this->_writeBuffer);
+	}
+
+	public function mayWrite(){
+		if(strlen($this->_writeBuffer) > 1024){
+			$buff = substr($this->_writeBuffer, 0,1024);
+			$this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 1024) : '' ;
+		} else {
+			$buff = $this->_writeBuffer;
+			$this->_writeBuffer = '';
+		}
+
+
+		if(WebSocketFunctions::writeWholeBuffer($this->_socket, $buff) == false){
+			$this->close();
+		}
+
+		if(strlen($this->_writeBuffer) == 0 && $this->isClosing())
+			$this->close();
 
 	}
 
@@ -78,8 +114,18 @@ class WebSocket{
 	}
 
 	public function disconnect(){
-		@fclose($this->_socket);
+		$this->_disconnecting = true;
 
+		if($this->_writeBuffer != '')
+			$this->close();
+	}
+
+	public function isClosing(){
+		return $this->_disconnecting;
+	}
+
+	public function close(){
+		fclose($this->_socket);
 		foreach($this->_observers as $observer){
 			$observer->onDisconnect($this);
 		}

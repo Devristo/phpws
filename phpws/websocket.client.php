@@ -4,8 +4,9 @@ require_once ("websocket.exceptions.php");
 require_once ("websocket.framing.php");
 require_once ("websocket.message.php");
 require_once ("websocket.resources.php");
+require_once ("websocket.socket.php");
 
-class WebSocket {
+class WebSocket implements WebSocketObserver {
 	protected $socket;
 	protected $handshakeChallenge;
 	protected $hixieKey1;
@@ -17,6 +18,11 @@ class WebSocket {
 	protected $url;
 
 	protected $hybi;
+
+	protected $_frames = array();
+	protected $_messages = array();
+
+	protected $_head = '';
 
 	// mamta
 	public function __construct($url, $useHybie = true) {
@@ -51,6 +57,14 @@ class WebSocket {
 		}
 	}
 
+	public function onDisconnect(WebSocketSocket $s){}
+	public function onConnectionEstablished(WebSocketSocket $s){}
+	public function onMessage(IWebSocketConnection $s, IWebSocketMessage $msg){
+		$this->_messages[] = $msg;
+
+	}
+	public function onFlashXMLRequest(WebSocketConnectionFlash $connection){}
+
 	public function setTimeOut($seconds) {
 		$this -> _timeOut = $seconds;
 	}
@@ -79,9 +93,13 @@ class WebSocket {
 		$buffer = WebSocketFunctions::readWholeBuffer($this->socket);
 		$headers = WebSocketFunctions::parseHeaders($buffer);
 
-		if ($headers['Sec-Websocket-Accept'] != WebSocketFunctions::calcHybiResponse($this -> handshakeChallenge)) {
-			return false;
-		}
+		$s = new WebSocketSocket($this, $this->socket, $immediateWrite = true);
+
+		if($this->hybi)
+			$this->_connection = new WebSocketConnectionHybi($s, $headers);
+		else $this->_connection = new WebSocketConnectionHixie($s, $headers, $buffer);
+
+		$s->setConnection($this->_connection);
 
 		return true;
 	}
@@ -121,25 +139,15 @@ class WebSocket {
 	}
 
 	public function send($string) {
-
-		if ($this -> hybi)
-			$msg = WebSocketMessage::create($string);
-		else
-			$msg = WebSocketMessage76::create($string);
-
-		$this -> sendMessage($msg);
+		$this->_connection->sendString($string);
 	}
 
 	public function sendMessage(IWebSocketMessage $msg) {
-		// Sent all fragments
-		foreach ($msg->getFrames() as $frame) {
-			$this -> sendFrame($frame);
-		}
+		$this->_connection->sendMessage($msg);
 	}
 
 	public function sendFrame(IWebSocketFrame $frame) {
-		$msg = $frame -> encode();
-		fwrite($this -> socket, $msg, strlen($msg));
+		$this->_connection->sendFrame($frame);
 	}
 
 	/**
@@ -148,36 +156,20 @@ class WebSocket {
 	public function readFrame() {
 		$buffer = WebSocketFunctions::readWholeBuffer($this->socket);
 
-		if ($buffer === false)
-			return null;
+		if(count($this->_frames) == 0){
+			$this->_frames = $this->_connection->readFrame($buffer);
+		}
 
-		if ($this -> hybi)
-			return WebSocketFrame::decode($buffer);
-		else
-			return WebSocketFrame76::decode($buffer);
+		return array_shift($this->_frames);
 	}
 
 	public function readMessage() {
-		$frame = $this -> readFrame();
+		while(count($this->_messages) == 0)
+			$this->readFrame();
 
-		if ($frame == null)
-			return null;
 
-		if ($this -> hybi)
-			$msg = WebSocketMessage::fromFrame($frame);
-		else
-			$msg = WebSocketMessage76::fromFrame($frame);
 
-		while ($msg -> isFinalised() == false) {
-			$frame = $this -> readFrame();
-
-			if ($frame != null)
-				$msg -> takeFrame($this -> readFrame());
-			else
-				return null;
-		}
-
-		return $msg;
+		return array_shift($this->_messages);
 	}
 
 	public function close() {

@@ -69,22 +69,4 @@ class test extends UnitTestCase {
 		$client->close();
 		$this->assertEqual(WebSocketOpcode::PongFrame, $frame->getType());
 	}
-
-	function test_closeResponse(){
-		$frame = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
-
-		$client = new WebSocket("ws://127.0.0.1:12345/");
-		$client->open();
-		$client->sendFrame($frame);
-
-		$frame = $client->readFrame();
-
-		$client->close();
-
-		// When sending a Close frame, the client needs to receive a Close frame as well before the connection is disconnected
-		$this->assertEqual(WebSocketOpcode::CloseFrame, $frame->getType());
-
-		// Specs dictate that the frame should be masked!
-		$this->assertEqual($frame->isMasked(), true);
-	}
 }

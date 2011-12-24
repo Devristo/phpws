@@ -122,7 +122,7 @@ class WebSocketServer implements WebSocketObserver{
 			return;
 		}
 
-		$this->sockets->attach(new WebSocket($this, $this->master));
+		$this->sockets->attach(new WebSocketSocket($this, $this->master));
 
 
 		while(true){
@@ -131,7 +131,7 @@ class WebSocketServer implements WebSocketObserver{
 
 			// Retreive sockets which are 'Changed'
 			$changed = $this->getResources();
-			$write = null;
+			$write = $this->getWriteStreams();
 			$except = null;
 
 			if(stream_select($changed,$write,$except,NULL) === false){
@@ -166,6 +166,14 @@ class WebSocketServer implements WebSocketObserver{
 				}
 			}
 
+			foreach($write as $s){
+				$o = $this->getSocketByResource($s);
+				if($o != null)
+					$o->mayWrite();
+
+			}
+
+
 			$this->debug('Number of users connected: '.count($this->getConnections()));
 			$this->purgeUsers();
 		}
@@ -178,7 +186,7 @@ class WebSocketServer implements WebSocketObserver{
 				WebSocketFunctions::say('socket_accept() failed');
 			}
 
-			$this->sockets->attach(new WebSocket($this, $client));
+			$this->sockets->attach(new WebSocketSocket($this, $client));
 
 			$this->debug("Socket accepted");
 
@@ -187,6 +195,11 @@ class WebSocketServer implements WebSocketObserver{
 		}
 	}
 
+	/**
+	 *
+	 * @param resource $res
+	 * @return WebSocketSocket
+	 */
 	private function getSocketByResource($res){
 		foreach($this->sockets as $socket){
 			if($socket->getResource() == $res)
@@ -318,7 +331,7 @@ class WebSocketServer implements WebSocketObserver{
 		echo date("Y-m-d H:i:s")." | ".$msg."\n";
 	}
 
-	public function onConnectionEstablished(WebSocket $s){
+	public function onConnectionEstablished(WebSocketSocket $s){
 		$con = $s->getConnection();
 		$this->_connections->attach($con);
 
@@ -347,7 +360,7 @@ class WebSocketServer implements WebSocketObserver{
 		}
 	}
 
-	public function onDisconnect(WebSocket $socket){
+	public function onDisconnect(WebSocketSocket $socket){
 		$con = $socket->getConnection();
 		try{
 			if($con){
@@ -404,6 +417,17 @@ class WebSocketServer implements WebSocketObserver{
 	public function onFlashXMLRequest(WebSocketConnectionFlash $connection){
 		$connection->sendString($this->FLASH_POLICY_FILE);
 		$connection->disconnect();
+	}
+
+	protected function getWriteStreams(){
+		$resources = array();
+
+		foreach($this->sockets as $socket){
+			if($socket->mustWrite())
+				$resources[] = $socket->getResource();
+		}
+
+		return $resources;
 	}
 
 	protected function getAdminKey(){

@@ -1,16 +1,22 @@
 <?php
 
 class WebSocketConnectionFactory {
-	public static function fromSocketData(WebSocket $socket, $data) {
+	public static function fromSocketData(WebSocketSocket $socket, $data) {
 		$headers = WebSocketFunctions::parseHeaders($data);
 
 		if (isset($headers['Sec-Websocket-Key1'])) {
-			return new WebSocketConnectionHixie($socket, $headers, $data);
+			$s = new WebSocketConnectionHixie($socket, $headers, $data);
+			$s->sendHandshakeResponse();
 		} else if (strpos($data, '<policy-file-request/>') === 0) {
-			return new WebSocketConnectionFlash($socket, $data);
+			$s = new WebSocketConnectionFlash($socket, $data);
 		} else {
-			return new WebSocketConnectionHybi($socket, $headers);
+			$s = new WebSocketConnectionHybi($socket, $headers);
+			$s->sendHandshakeResponse();
 		}
+
+
+
+		return $s;
 	}
 
 }
@@ -36,11 +42,9 @@ abstract class WebSocketConnection implements IWebSocketConnection {
 	protected $_cookies = array();
 	public $parameters = null;
 
-	public function __construct(WebSocket $socket, array $headers) {
+	public function __construct(WebSocketSocket $socket, array $headers) {
 		$this->setHeaders($headers);
 		$this->_socket = $socket;
-
-		$this->sendHandshakeResponse();
 	}
 
 	public function getId() {
@@ -157,6 +161,7 @@ class WebSocketConnectionHybi extends WebSocketConnection {
 	}
 
 	public function readFrame($data) {
+		$frames = array();
 		while (!empty($data)) {
 			$frame = WebSocketFrame::decode($data, $this->lastFrame);
 			if ($frame->isReady()) {
@@ -168,7 +173,11 @@ class WebSocketConnectionHybi extends WebSocketConnection {
 			} else {
 				$this->lastFrame = $frame;
 			}
+
+			$frames[] = $frame;
 		}
+
+		return $frames;
 	}
 
 	/**
@@ -232,7 +241,7 @@ class WebSocketConnectionHybi extends WebSocketConnection {
 		$f = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
 		$this->sendFrame($f);
 
-		$this->_socket->close();
+		$this->_socket->disconnect();
 	}
 
 }
@@ -240,7 +249,7 @@ class WebSocketConnectionHybi extends WebSocketConnection {
 class WebSocketConnectionHixie extends WebSocketConnection {
 	private $_clientHandshake;
 
-	public function __construct(WebSocket $socket, array $headers, $clientHandshake) {
+	public function __construct(WebSocketSocket $socket, array $headers, $clientHandshake) {
 		$this->_clientHandshake = $clientHandshake;
 		parent::__construct($socket, $headers);
 	}
@@ -270,9 +279,12 @@ class WebSocketConnectionHixie extends WebSocketConnection {
 	}
 
 	public function readFrame($data) {
-		$m = WebSocketMessage76::fromFrame(WebSocketFrame76::decode($data));
+		$f = WebSocketFrame76::decode($data);
+		$m = WebSocketMessage76::fromFrame($f);
 
 		$this->_socket->onMessage($m);
+
+		return array($f);
 	}
 
 	public function sendString($msg) {

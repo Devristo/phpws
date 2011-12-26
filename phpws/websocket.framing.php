@@ -125,13 +125,28 @@ class WebSocketFrame implements IWebSocketFrame {
 		return ($byte & pow(2, $pos)) > 0 ? 1 : 0;
 	}
 
-	protected static function rotMask($data, $key) {
-		$res = '';
-		for ($i = 0; $i < strlen($data); $i++) {
-			$j = $i % 4;
 
-			$res .= chr(ord($data[$i]) ^ ord($key[$j]));
+	protected static function rotMask($data, $key) {
+
+		$xorWidth = 4;
+
+		$res = '';
+		$runs = floor(1.0*strlen($data) / $xorWidth);
+
+		$ints = unpack("N*", $data);
+
+		list(,$key) = unpack("N", $key);
+
+
+		for($i=1;$i<=$runs;$i++)
+		{
+			$res .= pack("N",$ints[$i] ^ $key);
 		}
+
+		$trailing = strlen($data) % $xorWidth;
+
+		for($i = 0; $i < 0; $i++)
+			$res .= chr(ord($data[$i]) ^ $key);
 
 		return $res;
 	}
@@ -234,10 +249,11 @@ class WebSocketFrame implements IWebSocketFrame {
 			$raw = '';
 		}
 
-		if ($frame -> mask)
-			$frame -> payloadData .= self::rotMask($frameData, $frame -> maskingKey);
-		else
-			$frame -> payloadData .= $frameData;
+
+		$frame -> payloadData .= $frameData;
+
+		if($frame->isReady() && $frame->mask == 1)
+			$frame->payloadData = self::rotMask($frame->payloadData, $frame->maskingKey);
 
 		return $frame;
 	}

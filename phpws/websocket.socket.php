@@ -26,6 +26,8 @@ class WebSocketSocket{
 
 	private $_immediateWrite = false;
 
+	const WRITE_BUFFER = 4096;
+
 	/**
 	 *
 	 * Enter description here ...
@@ -37,6 +39,10 @@ class WebSocketSocket{
 		$this->_socket = $socket;
 		$this->_lastChanged = time();
 		$this->_immediateWrite = $immediateWrite;
+
+		stream_set_blocking($socket, 0);
+		//stream_set_read_buffer($socket, 1024*1024);
+		//stream_set_write_buffer($socket, 1024*1024);
 
 		$this->addObserver($server);
 	}
@@ -88,18 +94,19 @@ class WebSocketSocket{
 	}
 
 	public function mayWrite(){
-		if(strlen($this->_writeBuffer) > 4096){
-			$buff = substr($this->_writeBuffer, 0, 4096);
-			$this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 4096) : '' ;
-		} else {
-			$buff = $this->_writeBuffer;
-			$this->_writeBuffer = '';
-		}
 
+		$write = array($this->_socket);
 
-		if(WebSocketFunctions::writeWholeBuffer($this->_socket, $buff) == false){
-			$this->close();
-		}
+		@stream_select($read = NULL, $write, $t = NULL, 0);
+
+		if(count($write) == 0)
+			return;
+
+		$numBytes = @fwrite($this->_socket, $this->_writeBuffer);
+
+		if($numBytes < strlen($this->_writeBuffer))
+			$this->_writeBuffer = substr($this->_writeBuffer, $numBytes);
+		else $this->_writeBuffer = '';
 
 		if(strlen($this->_writeBuffer) == 0 && $this->isClosing())
 			$this->close();

@@ -111,6 +111,7 @@ class WebSocketServer implements WebSocketObserver{
 
 		$this->master = stream_socket_server($this->_url, $errno, $err, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN, $this->_context);
 
+
 		$this->say("PHP WebSocket Server");
 		$this->say("========================================");
 		$this->say("Server Started : ".date('Y-m-d H:i:s'));
@@ -184,6 +185,7 @@ class WebSocketServer implements WebSocketObserver{
 	private function acceptSocket(){
 		try{
 			$client=stream_socket_accept($this->master);
+
 			if($client === false){
 				WebSocketFunctions::say('socket_accept() failed');
 			}

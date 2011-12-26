@@ -9,15 +9,23 @@
 </style>
 
 <script>
+
+String.prototype.repeat = function( num )
+{
+    return new Array( num + 1 ).join( this );
+}
+
+
+
 var socket;
 
 function init(){
 	var host = "ws://" + window.location.host + ":12345/echo";
   try{
-    socket = new WebSocket(host);
+    socket = new MozWebSocket(host);
     log('WebSocket - status '+socket.readyState);
     socket.onopen    = function(msg){ log("Welcome - status "+this.readyState); };
-    socket.onmessage = function(msg){ log("Received ("+msg.data.length+" bytes): "+msg.data); };
+    socket.onmessage = function(msg){ log("Received ("+msg.data.length+" bytes)"); };
     socket.onclose   = function(msg){ log("Disconnected - status "+this.readyState); };
   }
   catch(ex){ log(ex); }
@@ -25,13 +33,11 @@ function init(){
 }
 
 function send(){
-  var txt,msg;
-  txt = $("msg");
-  msg = txt.value;
-  if(!msg){ alert("Message can not be empty"); return; }
-  txt.value="";
-  txt.focus();
-  try{ socket.send(msg); log('Sent ('+msg.length+" bytes): "+msg); } catch(ex){ log(ex); }
+
+
+  var msg = "a".repeat(1024*1024*2);
+
+  try{ socket.send(msg); log('Sent ('+msg.length+" bytes)"); } catch(ex){ log(ex); }
 }
 function quit(){
   log("Goodbye!");

@@ -56,15 +56,13 @@ class WebSocketFunctions{
 					return $written;
 				}
 			}
-
-			fflush($fp);
 			return $written;
 
 	}
 
 	public static function readWholeBuffer($resource){
 		$buffer = '';
-		$buffsize = 1024*1024;
+		$buffsize = 8192;
 
 		$metadata['unread_bytes'] = 0;
 

@@ -19,10 +19,20 @@ String.prototype.repeat = function( num )
 
 var socket;
 
+
+function createSocket(host){
+
+	if(Window.WebSocket)
+		return new WebSocket(host);
+	else if(Window.MozWebSocket)
+		return en MozWebSocket(host);
+
+}
+
 function init(){
 	var host = "ws://" + window.location.host + ":12345/echo";
   try{
-    socket = new MozWebSocket(host);
+    socket = createSocket(host);
     log('WebSocket - status '+socket.readyState);
     socket.onopen    = function(msg){ log("Welcome - status "+this.readyState); };
     socket.onmessage = function(msg){ log("Received ("+msg.data.length+" bytes)"); };

@@ -83,12 +83,6 @@ class WebSocket implements WebSocketObserver {
 		$protocol = $this -> scheme == 'ws' ? "tcp" : "ssl";
 
 		$this -> socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this -> getTimeOut());
-
-		if($errno > 0){
-			trigger_error("Cannot connect: $errstr", E_USER_WARNING);
-			return false;
-		}
-
 		// socket_connect($this->socket, $this->host, $this->port);
 
 		$buffer = $this -> serializeHeaders();

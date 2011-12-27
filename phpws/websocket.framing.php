@@ -126,27 +126,12 @@ class WebSocketFrame implements IWebSocketFrame {
 	}
 
 
-	protected static function rotMask($data, $key) {
-
-		$xorWidth = 4;
-
+	protected static function rotMask($data, $key, $offset = 0) {
 		$res = '';
-		$runs = floor(1.0*strlen($data) / $xorWidth);
-
-		$ints = unpack("N*", $data);
-
-		list(,$key) = unpack("N", $key);
-
-
-		for($i=1;$i<=$runs;$i++)
-		{
-			$res .= pack("N",$ints[$i] ^ $key);
+		for ($i = 0; $i < strlen($data); $i++) {
+			$j = ($i + $offset) % 4;
+			$res .= chr(ord($data[$i]) ^ ord($key[$j]));
 		}
-
-		$trailing = strlen($data) % $xorWidth;
-
-		for($i = 0; $i < 0; $i++)
-			$res .= chr(ord($data[$i]) ^ $key);
 
 		return $res;
 	}
@@ -238,6 +223,7 @@ class WebSocketFrame implements IWebSocketFrame {
 			}
 		}
 
+		$currentOffset = $frame -> actualLength;
 		$fullLength = min($frame->payloadLength - $frame->actualLength, strlen($raw));
 		$frame -> actualLength += $fullLength;
 
@@ -249,11 +235,10 @@ class WebSocketFrame implements IWebSocketFrame {
 			$raw = '';
 		}
 
-
-		$frame -> payloadData .= $frameData;
-
-		if($frame->isReady() && $frame->mask == 1)
-			$frame->payloadData = self::rotMask($frame->payloadData, $frame->maskingKey);
+		if ($frame -> mask)
+			$frame -> payloadData .= self::rotMask($frameData, $frame -> maskingKey, $currentOffset);
+		else
+			$frame -> payloadData .= $frameData;
 
 		return $frame;
 	}

@@ -67,7 +67,18 @@ class WebSocketFunctions{
 		$metadata['unread_bytes'] = 0;
 
 		do{
-			$buffer .= fread($resource, $buffsize);
+			if(feof($resource))
+			{
+				return false;
+			}
+
+			$result = fread($resource, $buffsize);
+			if($result === false || feof($resource))
+			{
+			        return false;
+			}
+			$buffer .= $result;
+
 			$metadata = stream_get_meta_data($resource);
 
 			$buffsize = min($buffsize, $metadata['unread_bytes']);

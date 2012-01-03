@@ -150,15 +150,18 @@ class WebSocketServer implements WebSocketObserver{
 				}else{
 					$buffer = WebSocketFunctions::readWholeBuffer($resource);
 
-					$bytes = strlen($buffer);
-
-					//echo "Read $bytes bytes\n";
-
 					$socket = $this->getSocketByResource($resource);
 
-					if($bytes === false){
-						$socket->disconnect();
-					}else if($bytes === 0) {
+					// If read returns false, close the stream and continue with the next socket
+					if($buffer === false){
+						$socket->close();
+						// Skip to next stream
+						continue;
+					}
+
+					$bytes = strlen($buffer);
+
+					if($bytes === 0) {
 						$socket->close();
 					} else if($socket != null){
 						$socket->onData($buffer);

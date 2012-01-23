@@ -38,6 +38,11 @@ interface IWebSocketConnection {
 
 abstract class WebSocketConnection implements IWebSocketConnection {
 	protected $_headers = array();
+
+	/**
+	 *
+	 * @var WebSocketSocket
+	 */
 	protected $_socket = null;
 	protected $_cookies = array();
 	public $parameters = null;
@@ -296,7 +301,7 @@ class WebSocketConnectionHixie extends WebSocketConnection {
 	}
 
 	public function disconnect() {
-		$this->_socket->close();
+		$this->_socket->disconnect();
 	}
 
 }

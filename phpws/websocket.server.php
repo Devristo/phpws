@@ -127,6 +127,12 @@ class WebSocketServer implements WebSocketObserver{
 
 		while(true){
 
+			clearstatcache();
+			// Garbage Collection (PHP >= 5.3)
+			if (function_exists('gc_collect_cycles')) {
+				gc_collect_cycles();
+			}
+
 			//$this->debug("Blocking on socket_select()");
 
 			// Retreive sockets which are 'Changed'

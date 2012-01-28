@@ -33,6 +33,8 @@ interface IWebSocketConnection {
 	public function getUriRequested();
 	public function getCookies();
 
+	public function getIp();
+
 	public function disconnect();
 }
 
@@ -50,6 +52,10 @@ abstract class WebSocketConnection implements IWebSocketConnection {
 	public function __construct(WebSocketSocket $socket, array $headers) {
 		$this->setHeaders($headers);
 		$this->_socket = $socket;
+	}
+
+	public function getIp(){
+		return stream_socket_get_name($this->_socket->getResource(), true);
 	}
 
 	public function getId() {

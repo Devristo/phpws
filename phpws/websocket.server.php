@@ -92,6 +92,28 @@ class WebSocketServer implements WebSocketObserver{
 	}
 
 	/**
+	 * Unassociate a request uri to a IWebSocketResourceHandler.
+	 *
+	 * @param string $script For example 'handler1' to capture request with URI '/handler1/'
+	 * @param $disconnectUsers if true, disconnect users assosiated to handler.
+	 */
+	public function removeUriHandler($script, $disconnectUsers = true){
+
+		if ( empty($this->uriHandlers[$script]) ) return false;
+		$handler = $this->uriHandlers[$script];
+		unset( $this->uriHandlers[$script] );
+
+		if ($disconnectUsers) foreach($handler->getConnections() as $user){
+
+			$handler->removeConnection($user);
+			$user->disconnect();
+		}
+
+		return $handler;
+	}
+
+
+	/**
 	 * Start the server
 	 */
 	public function run(){

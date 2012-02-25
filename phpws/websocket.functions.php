@@ -73,7 +73,7 @@ class WebSocketFunctions{
 			}
 
 			$result = fread($resource, $buffsize);
-			if($result === false || feof($resource))
+			if($result === false)
 			{
 			        return false;
 			}

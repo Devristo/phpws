@@ -13,7 +13,7 @@ class WebSocketAdminClient extends WebSocket{
 	}
 
 
-	public function sendMessage(WebSocketAdminMessage $msg){
+	public function sendMessage($msg){
 		$wsmsg = WebSocketMessage::create(json_encode($msg));
 
 		parent::sendMessage($wsmsg);

@@ -142,7 +142,7 @@ class WebSocket implements WebSocketObserver {
 		$this->_connection->sendString($string);
 	}
 
-	public function sendMessage(IWebSocketMessage $msg) {
+	public function sendMessage($msg) {
 		$this->_connection->sendMessage($msg);
 	}
 

@@ -22,10 +22,10 @@ var socket;
 
 function createSocket(host){
 
-	if(Window.WebSocket)
+	if(window.WebSocket)
 		return new WebSocket(host);
-	else if(Window.MozWebSocket)
-		return en MozWebSocket(host);
+	else if(window.MozWebSocket)
+		return new MozWebSocket(host);
 
 }
 

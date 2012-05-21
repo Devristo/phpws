@@ -35,7 +35,7 @@ function init(){
     socket = createSocket(host);
     log('WebSocket - status '+socket.readyState);
     socket.onopen    = function(msg){ log("Welcome - status "+this.readyState); };
-    socket.onmessage = function(msg){ log("Received ("+msg.data.length+" bytes)"); };
+    socket.onmessage = function(msg){ log("Received ("+msg.data.length+" bytes): " + msg.data); };
     socket.onclose   = function(msg){ log("Disconnected - status "+this.readyState); };
   }
   catch(ex){ log(ex); }
@@ -45,9 +45,9 @@ function init(){
 function send(){
 
 
-  var msg = "a".repeat(1024*1024*2);
+  var msg = document.getElementById('msg').value;
 
-  try{ socket.send(msg); log('Sent ('+msg.length+" bytes)"); } catch(ex){ log(ex); }
+  try{ socket.send(msg); log('Sent ('+msg.length+" bytes): " + msg); } catch(ex){ log(ex); }
 }
 function quit(){
   log("Goodbye!");

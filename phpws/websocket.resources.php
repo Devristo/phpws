@@ -37,6 +37,7 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler{
 
 	public function removeConnection(IWebSocketConnection $user){
 		$this->users->detach($user);
+		$this->onDisconnect($user);
 	}
 
 	public function setServer(WebSocketServer $server){
@@ -50,6 +51,8 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler{
 	public function send(IWebSocketConnection $client, $str){
 		return $client->sendString($str);
 	}
+
+	public function onDisconnect(IWebSocketConnection $user){}
 
 	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){}
 	public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){}

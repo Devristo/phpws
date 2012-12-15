@@ -1,31 +1,36 @@
 <?php
 
-interface IWebSocketUser{
-	public function __construct($socket, WebSocketServer $server);
+interface IWebSocketUser {
 
-	public function getId();
+    public function __construct($socket, WebSocketServer $server);
 
-	public function getResource();
-	public function setResource($resource);
+    public function getId();
 
-	public function isAdmin();
+    public function getResource();
 
-	public function hasHandshaked();
-	public function setHandshaked();
+    public function setResource($resource);
 
-	public function getHeaders();
-	public function setHeaders($headers);
+    public function isAdmin();
 
-	public function getLastMessage();
-	public function addMessage(IWebSocketMessage $msg);
+    public function hasHandshaked();
 
-	public function getLastMessageTime();
+    public function setHandshaked();
 
-	public function getSocket();
+    public function getHeaders();
 
-	public function getServerInstance();
+    public function setHeaders($headers);
 
-	public function getIp();
+    public function getLastMessage();
+
+    public function addMessage(IWebSocketMessage $msg);
+
+    public function getLastMessageTime();
+
+    public function getSocket();
+
+    public function getServerInstance();
+
+    public function getIp();
 }
 
 /**
@@ -34,118 +39,114 @@ interface IWebSocketUser{
  * @author Chris
  *
  */
-class WebSocketUser implements IWebSocketUser{
-	protected $id;
+class WebSocketUser implements IWebSocketUser {
 
-	private $socket;
-	private $resource;
-	private $ip;
+    protected $id;
+    private $socket;
+    private $resource;
+    private $ip;
 
+    /**
+     *
+     * Enter description here ...
+     * @var WebSocketMessage
+     */
+    private $message;
+    private $headers = array();
+    private $cookies = array();
+    private $isAdmin = false;
+    private $lastTime = null;
+    private $_server;
 
-	/**
-	 *
-	 * Enter description here ...
-	 * @var WebSocketMessage
-	 */
-	private $message;
-	private $headers = array();
-	private $cookies = array();
+    public function __construct($socket, WebSocketServer $server) {
+        $this->socket = $socket;
 
-	private $isAdmin = false;
-	private $lastTime = null;
+        $address = '';
+        if (socket_getpeername($socket, &$address) === false)
+            throw new Exception();
 
-	private $_server;
+        $this->ip = $address;
+        $this->id = uniqid("u-");
 
-	public function __construct($socket, WebSocketServer $server){
-		$this->socket = $socket;
+        $this->_server = $server;
 
-		$address = '';
-		if(socket_getpeername($socket, &$address) === false)
-			throw new Exception();
+        $this->lastTime = time();
+    }
 
-		$this->ip = $address;
-		$this->id = uniqid("u-");
+    public function getId() {
+        return $this->id;
+    }
 
-		$this->_server = $server;
+    public function getHeaders() {
+        return $this->headers;
+    }
 
-		$this->lastTime = time();
-	}
+    public function setHeaders($headers) {
+        $this->headers = $headers;
 
-	public function getId(){
-		return $this->id;
-	}
+        if (array_key_exists('Cookie', $this->headers) && is_array($this->headers['Cookie'])) {
+            $this->cookie = array();
+        } else {
+            if (array_key_exists("Cookie", $this->headers)) {
+                $this->_cookies = WebSocketFunctions::cookie_parse($this->headers['Cookie']);
+            }
+            else
+                $this->_cookies = array();
+        }
 
-	public function getHeaders(){
-		return $this->headers;
-	}
+        $this->isAdmin = array_key_exists('Admin-Key', $this->headers) && $this->headers['Admin-Key'] == $this->getServerInstance()->getAdminKey();
 
-	public function setHeaders($headers){
-		$this->headers = $headers;
+        // Incorrect admin-key
+        if ($this->isAdmin == false && array_key_exists('Admin-Key', $this->headers))
+            throw new WebSocketNotAuthorizedException($this);
+    }
 
-		if(array_key_exists('Cookie', $this->headers) && is_array($this->headers['Cookie'])) {
-			$this->cookie = array();
-		} else {
-			if(array_key_exists("Cookie", $this->headers)){
-			 	$this->_cookies = WebSocketFunctions::cookie_parse($this->headers['Cookie']);
-			}else $this->_cookies = array();
-		}
+    public function hasHandshaked() {
+        return $this->handshaked;
+    }
 
-		$this->isAdmin = array_key_exists('Admin-Key', $this->headers)
-			&& $this->headers['Admin-Key'] == $this->getServerInstance()->getAdminKey();
+    public function setHandshaked() {
+        $this->handshaked = true;
+    }
 
-		// Incorrect admin-key
-		if($this->isAdmin == false && array_key_exists('Admin-Key', $this->headers))
-			throw new WebSocketNotAuthorizedException($this);
+    public function getCookies() {
+        return $this->_cookies;
+    }
 
-	}
+    public function setProtocolVersion($version) {
+        $this->protocol = $version;
+    }
 
-	public function hasHandshaked(){
-		return $this->handshaked;
-	}
+    public function getResource() {
+        return $this->resource;
+    }
 
-	public function setHandshaked(){
-		$this->handshaked = true;
-	}
+    public function setResource($resource) {
+        $this->resource = $resource;
+    }
 
+    public function isAdmin() {
+        return $this->isAdmin;
+    }
 
+    public function getLastMessage() {
+        return $this->message;
+    }
 
-	public function getCookies(){
-		return $this->_cookies;
-	}
+    public function getSocket() {
+        return $this->socket;
+    }
 
-	public function setProtocolVersion($version){
-		$this->protocol = $version;
-	}
+    public function getLastMessageTime() {
+        return $this->lastTime;
+    }
 
-	public function getResource(){
-		return $this->resource;
-	}
+    public function getServerInstance() {
+        return $this->_server;
+    }
 
-	public function setResource($resource){
-		$this->resource = $resource;
-	}
+    public function getIp() {
+        return $this->ip;
+    }
 
-	public function isAdmin(){
-		return $this->isAdmin;
-	}
-
-	public function getLastMessage(){
-		return $this->message;
-	}
-
-	public function getSocket(){
-		return $this->socket;
-	}
-
-	public function getLastMessageTime(){
-		return $this->lastTime;
-	}
-
-	public function getServerInstance(){
-		return $this->_server;
-	}
-
-	public function getIp(){
-		return $this->ip;
-	}
 }

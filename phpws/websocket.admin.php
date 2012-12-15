@@ -1,23 +1,25 @@
 <?php
+
 require_once("websocket.client.php");
 
-class WebSocketAdminClient extends WebSocket{
-	protected $adminKey = null;
+class WebSocketAdminClient extends WebSocket {
 
-	public function __construct($url, $adminKey){
-		parent::__construct($url);
+    protected $adminKey = null;
 
-		$this->adminKey = $adminKey;
+    public function __construct($url, $adminKey) {
+        parent::__construct($url);
 
-		$this->addHeader("Admin-Key", $adminKey);
-	}
+        $this->adminKey = $adminKey;
 
+        $this->addHeader("Admin-Key", $adminKey);
+    }
 
-	public function sendMessage($msg){
-		$wsmsg = WebSocketMessage::create(json_encode($msg));
+    public function sendMessage($msg) {
+        $wsmsg = WebSocketMessage::create(json_encode($msg));
 
-		parent::sendMessage($wsmsg);
-	}
+        parent::sendMessage($wsmsg);
+    }
+
 }
 
 /**
@@ -28,23 +30,25 @@ class WebSocketAdminClient extends WebSocket{
  * @author Chris
  *
  */
-class WebSocketAdminMessage extends stdClass{
-	public $task = null;
+class WebSocketAdminMessage extends stdClass {
 
-	private function __construct(){
+    public $task = null;
 
-	}
+    private function __construct() {
+        
+    }
 
-	/**
-	 * Create a message that will be send to the instance of the WebSocketServer
-	 *
-	 * @param string $task
-	 * @return WebSocketAdminMessage
-	 */
-	public static function create($task){
-		$o = new self();
-		$o->task = $task;
+    /**
+     * Create a message that will be send to the instance of the WebSocketServer
+     *
+     * @param string $task
+     * @return WebSocketAdminMessage
+     */
+    public static function create($task) {
+        $o = new self();
+        $o->task = $task;
 
-		return $o;
-	}
+        return $o;
+    }
+
 }

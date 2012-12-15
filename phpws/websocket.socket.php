@@ -1,153 +1,155 @@
 <?php
+
 require_once("websocket.protocol.php");
 
-interface WebSocketObserver{
-	public function onDisconnect(WebSocketSocket $s);
-	public function onConnectionEstablished(WebSocketSocket $s);
-	public function onMessage(IWebSocketConnection $s, IWebSocketMessage $msg);
-	public function onFlashXMLRequest(WebSocketConnectionFlash $connection);
+interface WebSocketObserver {
+
+    public function onDisconnect(WebSocketSocket $s);
+
+    public function onConnectionEstablished(WebSocketSocket $s);
+
+    public function onMessage(IWebSocketConnection $s, IWebSocketMessage $msg);
+
+    public function onFlashXMLRequest(WebSocketConnectionFlash $connection);
 }
 
-class WebSocketSocket{
-	private $_socket = null;
-	private $_protocol = null;
+class WebSocketSocket {
 
-	/**
-	 *
-	 * @var IWebSocketConnection
-	 */
-	private $_connection = null;
+    private $_socket = null;
+    private $_protocol = null;
 
-	private $_writeBuffer = '';
+    /**
+     *
+     * @var IWebSocketConnection
+     */
+    private $_connection = null;
+    private $_writeBuffer = '';
+    private $_lastChanged = null;
+    private $_disconnecting = false;
+    private $_immediateWrite = false;
 
-	private $_lastChanged = null;
+    /**
+     *
+     * Enter description here ...
+     * @var WebSocketObserver[]
+     */
+    private $_observers = array();
 
-	private $_disconnecting = false;
+    public function __construct(WebSocketObserver $server, $socket, $immediateWrite = false) {
+        $this->_socket = $socket;
+        $this->_lastChanged = time();
+        $this->_immediateWrite = $immediateWrite;
 
-	private $_immediateWrite = false;
+        $this->addObserver($server);
+    }
 
-	/**
-	 *
-	 * Enter description here ...
-	 * @var WebSocketObserver[]
-	 */
-	private $_observers = array();
+    public function onData($data) {
+        try {
+            $this->_lastChanged = time();
 
-	public function __construct(WebSocketObserver $server, $socket, $immediateWrite = false){
-		$this->_socket = $socket;
-		$this->_lastChanged = time();
-		$this->_immediateWrite = $immediateWrite;
+            if ($this->_connection)
+                $this->_connection->readFrame($data);
+            else
+                $this->establishConnection($data);
+        } catch (Exception $e) {
+            $this->disconnect();
+        }
+    }
 
-		$this->addObserver($server);
-	}
+    public function setConnection(IWebSocketConnection $con) {
+        $this->_connection = $con;
+    }
 
-	public function onData($data){
-		try{
-			$this->_lastChanged = time();
+    public function onMessage(IWebSocketMessage $m) {
+        foreach ($this->_observers as $observer) {
+            $observer->onMessage($this->getConnection(), $m);
+        }
+    }
 
-			if($this->_connection)
-				$this->_connection->readFrame($data);
-			else $this->establishConnection($data);
-		} catch (Exception $e){
-			$this->disconnect();
-		}
-	}
+    public function establishConnection($data) {
+        $this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data);
 
-	public function setConnection(IWebSocketConnection $con){
-		$this->_connection = $con;
-	}
+        if ($this->_connection instanceof WebSocketConnectionFlash)
+            return;
 
-	public function onMessage(IWebSocketMessage $m){
-		foreach($this->_observers as $observer){
-			$observer->onMessage($this->getConnection(), $m);
-		}
-	}
+        foreach ($this->_observers as $observer) {
+            $observer->onConnectionEstablished($this);
+        }
+    }
 
-	public function establishConnection($data){
-		$this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data);
+    public function write($data) {
+        $this->_writeBuffer .= $data;
 
-		if($this->_connection instanceof WebSocketConnectionFlash)
-			return;
+        if ($this->_immediateWrite == true) {
+            while ($this->_writeBuffer != '')
+                $this->mayWrite();
+        }
+    }
 
-		foreach($this->_observers as $observer){
-			$observer->onConnectionEstablished($this);
-		}
-	}
+    public function mustWrite() {
+        return strlen($this->_writeBuffer);
+    }
 
-	public function write($data){
-		$this->_writeBuffer .= $data;
-
-		if($this->_immediateWrite == true){
-			while($this->_writeBuffer != '')
-				$this->mayWrite();
-		}
-	}
-
-	public function mustWrite(){
-		return strlen($this->_writeBuffer);
-	}
-
-	public function mayWrite(){
-		if(strlen($this->_writeBuffer) > 4096){
-			$buff = substr($this->_writeBuffer, 0, 4096);
-			$this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 4096) : '' ;
-		} else {
-			$buff = $this->_writeBuffer;
-			$this->_writeBuffer = '';
-		}
+    public function mayWrite() {
+        if (strlen($this->_writeBuffer) > 4096) {
+            $buff = substr($this->_writeBuffer, 0, 4096);
+            $this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 4096) : '';
+        } else {
+            $buff = $this->_writeBuffer;
+            $this->_writeBuffer = '';
+        }
 
 
-		if(WebSocketFunctions::writeWholeBuffer($this->_socket, $buff) == false){
-			$this->close();
-		}
+        if (WebSocketFunctions::writeWholeBuffer($this->_socket, $buff) == false) {
+            $this->close();
+        }
 
-		if(strlen($this->_writeBuffer) == 0 && $this->isClosing())
-			$this->close();
+        if (strlen($this->_writeBuffer) == 0 && $this->isClosing())
+            $this->close();
+    }
 
-	}
+    public function getLastChanged() {
+        return $this->_lastChanged;
+    }
 
-	public function getLastChanged(){
-		return $this->_lastChanged;
-	}
+    public function onFlashXMLRequest(WebSocketConnectionFlash $connection) {
+        foreach ($this->_observers as $observer) {
+            $observer->onFlashXMLRequest($connection);
+        }
+    }
 
-	public function onFlashXMLRequest(WebSocketConnectionFlash $connection){
-		foreach($this->_observers as $observer){
-			$observer->onFlashXMLRequest($connection);
-		}
-	}
+    public function disconnect() {
+        $this->_disconnecting = true;
 
-	public function disconnect(){
-		$this->_disconnecting = true;
+        if ($this->_writeBuffer == '')
+            $this->close();
+    }
 
-		if($this->_writeBuffer == '')
-			$this->close();
-	}
+    public function isClosing() {
+        return $this->_disconnecting;
+    }
 
-	public function isClosing(){
-		return $this->_disconnecting;
-	}
+    public function close() {
+        fclose($this->_socket);
+        foreach ($this->_observers as $observer) {
+            $observer->onDisconnect($this);
+        }
+    }
 
-	public function close(){
-		fclose($this->_socket);
-		foreach($this->_observers as $observer){
-			$observer->onDisconnect($this);
-		}
-	}
+    public function getResource() {
+        return $this->_socket;
+    }
 
-	public function getResource(){
-		return $this->_socket;
-	}
+    /**
+     *
+     * @return IWebSocketConnection
+     */
+    public function getConnection() {
+        return $this->_connection;
+    }
 
-	/**
-	 *
-	 * @return IWebSocketConnection
-	 */
-	public function getConnection(){
-		return $this->_connection;
-	}
-
-	public function addObserver(WebSocketObserver $s){
-		$this->_observers[] = $s;
-	}
+    public function addObserver(WebSocketObserver $s) {
+        $this->_observers[] = $s;
+    }
 
 }

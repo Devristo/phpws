@@ -23,6 +23,8 @@ class WebSocket implements WebSocketObserver {
 	protected $_messages = array();
 
 	protected $_head = '';
+        
+        protected $_timeOut = 1;
 
 	// mamta
 	public function __construct($url, $useHybie = true) {
@@ -126,7 +128,7 @@ class WebSocket implements WebSocketObserver {
 
 		$this -> headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}:{$this->port}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Sec-WebSocket-Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 8, "Upgrade:" => "websocket");
 
-		return $headers;
+		return $this->headers;
 	}
 
 	# mamta: hixie 76

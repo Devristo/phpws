@@ -209,8 +209,9 @@ class WebSocketFrame implements IWebSocketFrame {
 			if ($len <= 125)
 				$frame -> payloadLength = $len;
 			elseif ($len == 126) {
-				$frame -> payloadLength = array_pop(unpack("nfirst", $raw));
-				$raw = substr($raw, 2);
+                            $arr = unpack("nfirst", $raw);
+                            $frame -> payloadLength = array_pop($arr);
+                            $raw = substr($raw, 2);
 			} elseif ($len == 127) {
 				list(,$h, $l) = unpack('N2', $raw);
 				$frame->payloadLength = ($l + ($h*0x0100000000));

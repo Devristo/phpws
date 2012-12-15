@@ -15,7 +15,7 @@ class DemoEchoHandler extends WebSocketUriHandler{
 	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
 		$this->say("[ECHO] ".strlen($msg->getData()). " bytes");
 		// Echo
-		$user->sendMessage($msg);
+		$user->sendString($msg->getData());
 	}
 
 	public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj){

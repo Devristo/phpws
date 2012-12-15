@@ -1,7 +1,6 @@
 <?php
 require_once("../websocket.client.php");
 require_once("../websocket.admin.php");
-require_once('simpletest/autorun.php');
 
 /**
  * These tests need the 'demo.php' server to be running
@@ -9,7 +8,7 @@ require_once('simpletest/autorun.php');
  * @author Chris
  *
  */
-class test extends UnitTestCase {
+class TestServer extends PHPUnit_Framework_TestCase {
 	function test_echoResourceHandlerResponse(){
 		$input = "Hello World!";
 		$msg = WebSocketMessage::create($input);

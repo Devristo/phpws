@@ -100,11 +100,17 @@ abstract class WebSocketConnection implements IWebSocketConnection {
 	}
 
 	public function getUriRequested() {
-		return $this->_headers['GET'];
+            if(array_key_exists('GET', $this->_headers))
+                    return $this->_headers['GET'];
+            else return null;
 	}
 
 	protected function getQueryParts() {
 		$url = $this->getUriRequested();
+                
+                // We dont have an URL to process (this is the case for the client)
+                if($url == null)
+                    return;
 
 		if (($pos = strpos($url, "?")) == -1) {
 			$this->parameters = array();

@@ -183,7 +183,7 @@ class WebSocket implements WebSocketObserver {
 		do {
 			$i++;
 			$frame = @$this -> readFrame();
-		} while($i < 2 && $frame && $frame->getType == WebSocketOpcode::CloseFrame);
+		} while($i < 2 && $frame && $frame->getType() == WebSocketOpcode::CloseFrame);
 
 		@fclose($this -> socket);
 	}

@@ -20,7 +20,7 @@ class TestServer extends PHPUnit_Framework_TestCase {
 		$msg = $client->readMessage();
 
 		$client->close();
-		$this->assertEqual($input, $msg->getData());
+		$this->assertEquals($input, $msg->getData());
 	}
 
 	function test_DoubleEchoResourceHandlerResponse(){
@@ -38,8 +38,8 @@ class TestServer extends PHPUnit_Framework_TestCase {
 		$msg2= $client->readMessage();
 
 		$client->close();
-		$this->assertEqual($input, $msg->getData());
+		$this->assertEquals($input, $msg->getData());
 
-		$this->assertEqual($input2, $msg2->getData());
+		$this->assertEquals($input2, $msg2->getData());
 	}
 }

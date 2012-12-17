@@ -42,7 +42,7 @@ Requirements
 
 Server Example
 ---------------
-
+```php
 	#!/php -q
 	<?php
 
@@ -120,11 +120,11 @@ Server Example
 	// Start server
 	$server = new DemoSocketServer();
 	$server->run();
-
+```
 
 Client Example
 ---------------------
-
+```php
       <?php
 	require_once("websocket.client.php");
 
@@ -142,3 +142,4 @@ Client Example
 
 	echo $msg->getData(); // Prints "Hello World!" when using the demo.php server
        ?>
+```

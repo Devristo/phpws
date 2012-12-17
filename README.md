@@ -1,13 +1,16 @@
-=Description=
+Description
+===========
 
 WebSocket Server and Client library for PHP. Works with the latest HyBi specifications, as well the older Hixie #76 specification used by older Chrome versions and some Flash fallback solutions.
 
 This project was started to bring more interactive features to http://www.u2start.com/
 
-== Downloads ==
+Downloads
+---------
 The current version available for download is 1.0 RC1. This version has been thouroughly tested. However documentation is still minimal. 
 
-== Features ==
+Features
+---------
 Server
   * Hixie #76 and Hybi #12 protocol versions
   * Flash client support (also serves XML policy file on the same port)
@@ -19,12 +22,14 @@ Client
   * Hybi / Hixie76 support.
 
 
-== Known Issues ==
+Known Issues
+-------------
   * SSL support not well field tested.
   * Lacks ORIGIN checking (can be implemented manually in onConnect using getHeaders(), just disconnect the user when you dont like the Origin header)
   * No support for extension data from the HyBi specs.
 
-== Requirements ==
+Requirements
+-------------
 *Server*
  * PHP 5.3
  * Open port for the server
@@ -35,91 +40,92 @@ Client
  * Server that implements the HyBi (#8-#12) draft version
  * PHP OpenSSL module to connect using SSL (wss:// uris)
 
-==Server Example==
-{{{
-#!/php -q
-<?php
+Server Example
+---------------
 
-// Run from command prompt > php demo.php
-require_once("websocket.server.php");
+	#!/php -q
+	<?php
 
-/**
- * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
- *
- * All this handler does is echoing the responds to the user
- * @author Chris
- *
- */
-class DemoEchoHandler extends WebSocketUriHandler{
-	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		$this->say("[ECHO] {$msg->getData()}");
-		// Echo
-		$user->sendMessage($msg);
+	// Run from command prompt > php demo.php
+	require_once("websocket.server.php");
+
+	/**
+	 * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
+	 *
+	 * All this handler does is echoing the responds to the user
+	 * @author Chris
+	 *
+	 */
+	class DemoEchoHandler extends WebSocketUriHandler{
+		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
+			$this->say("[ECHO] {$msg->getData()}");
+			// Echo
+			$user->sendMessage($msg);
+		}
+
+		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj){
+			$this->say("[DEMO] Admin TEST received!");
+
+			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
+			$user->sendFrame($frame);
+		}
 	}
 
-	public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj){
-		$this->say("[DEMO] Admin TEST received!");
+	/**
+	 * Demo socket server. Implements the basic eventlisteners and attaches a resource handler for /echo/ urls.
+	 *
+	 *
+	 * @author Chris
+	 *
+	 */
+	class DemoSocketServer implements IWebSocketServerObserver{
+		protected $debug = true;
+		protected $server;
 
-		$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-		$user->sendFrame($frame);
-	}
-}
+		public function __construct(){
+			$this->server = new WebSocketServer('tcp://0.0.0.0:12345', 'superdupersecretkey');
+			$this->server->addObserver($this);
 
-/**
- * Demo socket server. Implements the basic eventlisteners and attaches a resource handler for /echo/ urls.
- *
- *
- * @author Chris
- *
- */
-class DemoSocketServer implements IWebSocketServerObserver{
-	protected $debug = true;
-	protected $server;
+			$this->server->addUriHandler("echo", new DemoEchoHandler());
+		}
 
-	public function __construct(){
-		$this->server = new WebSocketServer('tcp://0.0.0.0:12345', 'superdupersecretkey');
-		$this->server->addObserver($this);
+		public function onConnect(IWebSocketConnection $user){
+			$this->say("[DEMO] {$user->getId()} connected");
+		}
 
-		$this->server->addUriHandler("echo", new DemoEchoHandler());
-	}
+		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
+			$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
+		}
 
-	public function onConnect(IWebSocketConnection $user){
-		$this->say("[DEMO] {$user->getId()} connected");
-	}
+		public function onDisconnect(IWebSocketConnection $user){
+			$this->say("[DEMO] {$user->getId()} disconnected");
+		}
 
-	public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
-	}
+		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
+			$this->say("[DEMO] Admin Message received!");
 
-	public function onDisconnect(IWebSocketConnection $user){
-		$this->say("[DEMO] {$user->getId()} disconnected");
-	}
+			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
+			$user->sendFrame($frame);
+		}
 
-	public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-		$this->say("[DEMO] Admin Message received!");
+		public function say($msg){
+			echo "$msg \r\n";
+		}
 
-		$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-		$user->sendFrame($frame);
-	}
-
-	public function say($msg){
-		echo "$msg \r\n";
+		public function run(){
+			$this->server->run();
+		}
 	}
 
-	public function run(){
-		$this->server->run();
-	}
-}
+	// Start server
+	$server = new DemoSocketServer();
+	$server->run();
 
-// Start server
-$server = new DemoSocketServer();
-$server->run();
-}}}
 
-==Client Example==
-The Client is not as interesting as the server and is mainly used to test the server
-{{{
-<?php
+Client Example
+---------------------
+
+      <?php
 	require_once("websocket.client.php");
 
 	$input = "Hello World!";
@@ -135,5 +141,4 @@ The Client is not as interesting as the server and is mainly used to test the se
 	$client->close();
 
 	echo $msg->getData(); // Prints "Hello World!" when using the demo.php server
-?>
-}}}
+       ?>

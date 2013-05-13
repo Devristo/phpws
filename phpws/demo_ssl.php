@@ -94,5 +94,5 @@ class DemoSocketServer implements IWebSocketServerObserver {
 }
 
 // Start server
-$server = new DemoSocketServer("ssl://0.0.0.0:12345");
+$server = new DemoSocketServer();
 $server->run();

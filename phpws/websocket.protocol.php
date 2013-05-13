@@ -166,7 +166,7 @@ abstract class WebSocketConnection implements IWebSocketConnection {
 
 }
 
-class WebSocketConnectionFlash {
+class WebSocketConnectionFlash extends WebSocketConnection {
 
     public function __construct($socket, $data) {
         $this->_socket = $socket;
@@ -181,6 +181,15 @@ class WebSocketConnectionFlash {
         $this->_socket->disconnect();
     }
 
+    public function sendHandshakeResponse()
+    {
+        throw new Exception("Not supported!");
+    }
+
+    public function readFrame($data)
+    {
+        throw new Exception("Not supported!");
+    }
 }
 
 class WebSocketConnectionHybi extends WebSocketConnection {

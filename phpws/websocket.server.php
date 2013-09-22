@@ -65,8 +65,8 @@ class WebSocketServer implements WebSocketObserver {
      *
      * Must be implemented by all extending classes
      *
-     * @param IWebSocketUser $user The user which sended the message
-     * @param IWebSocketMessage $msg The message that was received (can be WebSocketMessage76 or WebSocketMessage)
+     * @param $url
+     * @param $adminKey
      */
     public function __construct($url, $adminKey) {
         $this->adminKey = $adminKey;
@@ -91,7 +91,8 @@ class WebSocketServer implements WebSocketObserver {
      * Unassociate a request uri to a IWebSocketResourceHandler.
      *
      * @param string $script For example 'handler1' to capture request with URI '/handler1/'
-     * @param $disconnectUsers if true, disconnect users assosiated to handler.
+     * @param bool|\if $disconnectUsers if true, disconnect users assosiated to handler.
+     * @return bool|\IWebSocketUriHandler
      */
     public function removeUriHandler($script, $disconnectUsers = true) {
 
@@ -246,9 +247,9 @@ class WebSocketServer implements WebSocketObserver {
 
     /**
      * Dispatch an admin message to the associated resource handler or to the servers prefixed onAdmin functions
-
-     * @param WebSocketAdminUser $user
-     * @param stdClass $obj
+     * @param \IWebSocketConnection|\WebSocketAdminUser $user
+     * @param IWebSocketMessage $msg
+     * @internal param \stdClass $obj
      */
     protected function dispatchAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
 
@@ -269,7 +270,7 @@ class WebSocketServer implements WebSocketObserver {
      * Associate a request uri to a IWebSocketResourceHandler.
      *
      * @param string $script For example 'handler1' to capture request with URI '/handler1/'
-     * @param IWebSocketResourceHandler $handler Instance of a IWebSocketResourceHandler. This instance will receive the messages.
+     * @param \IWebSocketResourceHandler|\IWebSocketUriHandler $handler Instance of a IWebSocketResourceHandler. This instance will receive the messages.
      */
     public function addUriHandler($script, IWebSocketUriHandler $handler) {
         $this->uriHandlers[$script] = $handler;
@@ -278,8 +279,7 @@ class WebSocketServer implements WebSocketObserver {
 
     /**
      * Dispatch incoming message to the associated resource and to the general onMessage event handler
-
-     * @param IWebSocketUser $user
+     * @param \IWebSocketConnection $user
      * @param IWebSocketMessage $msg
      */
     protected function dispatchMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
@@ -298,8 +298,8 @@ class WebSocketServer implements WebSocketObserver {
      * Adds a user to a IWebSocketResourceHandler by using the request uri in the GET request of
      * the client's opening handshake
      *
-     * @param IWebSocketUser $user
-     * @param array $headers
+     * @param \WebSocketConnection $user
+     * @param $uri
      * @return IWebSocketResourceHandler Instance of the resource handler the user has been added to.
      */
     protected function addConnectionToUriHandler(WebSocketConnection $user, $uri) {
@@ -325,23 +325,6 @@ class WebSocketServer implements WebSocketObserver {
 
             $this->say("User has been added to $resource");
         }
-    }
-
-    /**
-     * Find the user associated with the socket
-     *
-     * @param socket $socket
-     * @return IWebSocketUser User associated with the socket, returns null when none found
-     */
-    protected function getUserBySocket($socket) {
-        $found = null;
-        foreach ($this->users as $user) {
-            if ($user->getSocket() == $socket) {
-                $found = $user;
-                break;
-            }
-        }
-        return $found;
     }
 
     /**

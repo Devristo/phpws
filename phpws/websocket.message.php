@@ -171,7 +171,7 @@ class WebSocketMessage implements IWebSocketMessage {
 
     /**
      * Append a frame to the message
-     * @param unknown_type $frame
+     * @param \WebSocketFrame $frame
      */
     public function takeFrame(WebSocketFrame $frame) {
         $this->frames[] = $frame;

@@ -48,6 +48,8 @@ interface IWebSocketFrame {
 
     /**
      * Deserialize a binary string into a IWebSocketFrame
+     * @param $string
+     * @param null $head
      * @return string Serialized binary string
      */
     public static function decode(&$string, $head = null);

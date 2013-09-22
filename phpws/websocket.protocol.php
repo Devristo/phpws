@@ -254,7 +254,6 @@ class WebSocketConnectionHybi extends WebSocketConnection {
      * When the last frame of a message is received, the message is sent for processing to the
      * abstract WebSocket::onMessage() method.
      *
-     * @param IWebSocketUser $user
      * @param WebSocketFrame $frame
      */
     protected function processMessageFrame(WebSocketFrame $frame) {
@@ -275,7 +274,6 @@ class WebSocketConnectionHybi extends WebSocketConnection {
      *
      * Sends Pong on Ping and closes the connection after a Close request.
      *
-     * @param IWebSocketUser $user
      * @param WebSocketFrame $frame
      */
     protected function processControlFrame(WebSocketFrame $frame) {

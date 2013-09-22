@@ -31,18 +31,6 @@ class WebSocketInvalidUrlScheme extends Exception {
     }
 
 }
-
-class WebSocketNotAuthorizedException extends Exception {
-
-    protected $user;
-
-    public function __construct(IWebSocketUser $user) {
-        parent::__construct("None or invalid credentials provided!");
-        $this->user = $user;
-    }
-
-}
-
 class WebSocketInvalidKeyException extends Exception {
 
     public function __construct($key1, $key2, $l8b) {

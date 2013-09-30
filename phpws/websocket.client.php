@@ -24,6 +24,24 @@ class WebSocket implements WebSocketObserver {
     protected $_head = '';
     protected $_timeOut = 1;
 
+    /**
+     * @param string $origin
+     */
+    public function setOrigin($origin)
+    {
+        $this->origin = $origin;
+    }
+
+    /**
+     * @return string
+     */
+    public function getOrigin()
+    {
+        return $this->origin;
+    }
+
+
+
     // mamta
     public function __construct($url, $useHybie = true) {
         $this->hybi = $useHybie;
@@ -37,7 +55,11 @@ class WebSocket implements WebSocketObserver {
         $this->scheme = $parts['scheme'];
 
         $this->host = $parts['host'];
-        $this->port = $parts['port'];
+        $this->port = array_key_exists('port', $parts) ? $parts['port'] : 80;
+        $this->path = array_key_exists('path', $parts) ? $parts['path'] : '/';
+
+        if(array_key_exists('query', $parts))
+            $this->path .= "?".$parts['query'];
 
         $this->origin = 'http://' . $this->host;
 
@@ -49,12 +71,7 @@ class WebSocket implements WebSocketObserver {
         if (isset($parts['query']))
             $this->requestUri .= "?" . $parts['query'];
 
-        // mamta
-        if ($useHybie) {
-            $this->buildHeaderArray();
-        } else {
-            $this->buildHeaderArrayHixie76();
-        }
+
     }
 
     public function onDisconnect(WebSocketSocket $s) {
@@ -93,6 +110,12 @@ class WebSocket implements WebSocketObserver {
         $this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this->getTimeOut());
         // socket_connect($this->socket, $this->host, $this->port);
 
+        // mamta
+        if ($this->hybi) {
+            $this->buildHeaderArray();
+        } else {
+            $this->buildHeaderArrayHixie76();
+        }
         $buffer = $this->serializeHeaders();
 
         fwrite($this->socket, $buffer, strlen($buffer));
@@ -119,11 +142,8 @@ class WebSocket implements WebSocketObserver {
         foreach ($this->headers as $k => $v) {
             $str .= $k . " " . $v . "\r\n";
         }
-        # mamta add key 3 needed for the handshake/swithching protocol compatible with glassfish
-        $key3 = WebSocketFunctions::genKey3();
-        $str .= "\r\n" . $key3;
 
-        return $str;
+        return $str."\r\n";
     }
 
     public function addHeader($key, $value) {
@@ -133,7 +153,7 @@ class WebSocket implements WebSocketObserver {
     protected function buildHeaderArray() {
         $this->handshakeChallenge = WebSocketFunctions::randHybiKey();
 
-        $this->headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}:{$this->port}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Sec-WebSocket-Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 8, "Upgrade:" => "websocket");
+        $this->headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 13, "Upgrade:" => "websocket");
 
         return $this->headers;
     }
@@ -143,7 +163,7 @@ class WebSocket implements WebSocketObserver {
     protected function buildHeaderArrayHixie76() {
         $this->hixieKey1 = WebSocketFunctions::randHixieKey();
         $this->hixieKey2 = WebSocketFunctions::randHixieKey();
-        $this->headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}:{$this->port}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Key1:" => "{$this->hixieKey1->key}", "Sec-WebSocket-Key2:" => "{$this->hixieKey2->key}", "Upgrade:" => "websocket", "Sec-WebSocket-Protocol: " => "hiwavenet");
+        $this->headers = array("GET" => "{$this->url} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Key1:" => "{$this->hixieKey1->key}", "Sec-WebSocket-Key2:" => "{$this->hixieKey2->key}", "Upgrade:" => "websocket", "Sec-WebSocket-Protocol: " => "hiwavenet");
 
         return $this->headers;
     }

@@ -68,7 +68,10 @@ class WebSocketServer implements WebSocketObserver {
      * @param $url
      * @param $adminKey
      */
-    public function __construct($url, $adminKey) {
+    public function __construct($url, $adminKey, $showHeaders = false) {
+        define("WS_DEBUG_HEADER", $showHeaders);
+
+
         $this->adminKey = $adminKey;
 
         $this->_url = $url;

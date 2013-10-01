@@ -85,6 +85,8 @@ class WebSocketFunctions {
 
             $buffsize = min($buffsize, $metadata['unread_bytes']);
         } while ($metadata['unread_bytes'] > 0);
+        
+        if(WS_DEBUG_HEADER) { echo $buffer; }
 
         return $buffer;
     }

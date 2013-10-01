@@ -43,7 +43,8 @@ class WebSocket implements WebSocketObserver {
 
 
     // mamta
-    public function __construct($url, $useHybie = true) {
+    public function __construct($url, $useHybie = true, $showHeaders = false) {
+        define("WS_DEBUG_HEADER", $showHeaders);
         $this->hybi = $useHybie;
         $parts = parse_url($url);
 

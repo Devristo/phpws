@@ -58,6 +58,7 @@ class WebSocket implements WebSocketObserver {
         $this->host = $parts['host'];
         $this->port = array_key_exists('port', $parts) ? $parts['port'] : 80;
         $this->path = array_key_exists('path', $parts) ? $parts['path'] : '/';
+        $this->query = array_key_exists("query", $parts) ? $parts['query'] : null ;
 
         if(array_key_exists('query', $parts))
             $this->path .= "?".$parts['query'];
@@ -154,7 +155,7 @@ class WebSocket implements WebSocketObserver {
     protected function buildHeaderArray() {
         $this->handshakeChallenge = WebSocketFunctions::randHybiKey();
 
-        $this->headers = array("GET" => "{$this->path} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 13, "Upgrade:" => "websocket");
+        $this->headers = array("GET" => "{$this->path}{$this->query} HTTP/1.1", "Connection:" => "Upgrade", "Host:" => "{$this->host}", "Sec-WebSocket-Key:" => "{$this->handshakeChallenge}", "Origin:" => "{$this->origin}", "Sec-WebSocket-Version:" => 13, "Upgrade:" => "websocket");
 
         return $this->headers;
     }

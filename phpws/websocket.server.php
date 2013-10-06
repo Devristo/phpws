@@ -172,11 +172,12 @@ class WebSocketServer implements WebSocketObserver {
 
 
             foreach ($changed as $resource) {
+                stream_set_blocking($resource, 0);
 
                 if ($resource == $this->master) {
                     $this->acceptSocket();
                 } else {
-                    $buffer = WebSocketFunctions::readWholeBuffer($resource);
+                    $buffer = fread($resource, 8192);
 
                     $socket = $this->getSocketByResource($resource);
 

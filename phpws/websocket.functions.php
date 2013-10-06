@@ -54,43 +54,6 @@ class WebSocketFunctions {
         return $cookies;
     }
 
-    public static function writeWholeBuffer($fp, $string) {
-        for ($written = 0; $written < strlen($string); $written += $fwrite) {
-            $fwrite = fwrite($fp, substr($string, $written));
-            if ($fwrite === false) {
-                return $written;
-            }
-        }
-        return $written;
-    }
-
-    public static function readWholeBuffer($resource) {
-        $buffer = '';
-        $buffsize = 8192;
-
-        $metadata['unread_bytes'] = 0;
-
-        do {
-            if (feof($resource)) {
-                return false;
-            }
-
-            $result = fread($resource, $buffsize);
-            if ($result === false) {
-                return false;
-            }
-            $buffer .= $result;
-
-            $metadata = stream_get_meta_data($resource);
-
-            $buffsize = min($buffsize, $metadata['unread_bytes']);
-        } while ($metadata['unread_bytes'] > 0);
-        
-        if(WS_DEBUG_HEADER) { echo $buffer; }
-
-        return $buffer;
-    }
-
     /**
      * Parse HTTP request into an array
      *

@@ -91,18 +91,12 @@ class WebSocketSocket {
     }
 
     public function mayWrite() {
-        if (strlen($this->_writeBuffer) > 4096) {
-            $buff = substr($this->_writeBuffer, 0, 4096);
-            $this->_writeBuffer = strlen($buff) > 0 ? substr($this->_writeBuffer, 4096) : '';
-        } else {
-            $buff = $this->_writeBuffer;
-            $this->_writeBuffer = '';
-        }
+        $bytesWritten = fwrite($this->_socket, $this->_writeBuffer, strlen($this->_writeBuffer));
 
-
-        if (WebSocketFunctions::writeWholeBuffer($this->_socket, $buff) == false) {
+        if($bytesWritten === false)
             $this->close();
-        }
+
+        $this->_writeBuffer = substr($this->_writeBuffer,$bytesWritten);
 
         if (strlen($this->_writeBuffer) == 0 && $this->isClosing())
             $this->close();

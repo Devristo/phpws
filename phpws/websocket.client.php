@@ -27,7 +27,9 @@ class WebSocket implements WebSocketObserver
 
     public function __construct($url, $useHybie = true, $showHeaders = false)
     {
-        define("WS_DEBUG_HEADER", $showHeaders);
+        if(defined('WS_DEBUG_HEADER'))
+            define("WS_DEBUG_HEADER", $showHeaders);
+
         $this->hybi = $useHybie;
         $parts = parse_url($url);
 
@@ -109,7 +111,6 @@ class WebSocket implements WebSocketObserver
         $protocol = $this->scheme == 'ws' ? "tcp" : "ssl";
 
         $this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this->getTimeOut());
-        // socket_connect($this->socket, $this->host, $this->port);
 
         // mamta
         if ($this->hybi) {
@@ -122,7 +123,7 @@ class WebSocket implements WebSocketObserver
         fwrite($this->socket, $buffer, strlen($buffer));
 
         // wait for response
-        $buffer = WebSocketFunctions::readWholeBuffer($this->socket);
+        $buffer = fread($this->socket, 8192);
         $headers = WebSocketFunctions::parseHeaders($buffer);
 
         $s = new WebSocketSocket($this, $this->socket, $immediateWrite = true);
@@ -210,7 +211,7 @@ class WebSocket implements WebSocketObserver
      */
     public function readFrame()
     {
-        $buffer = WebSocketFunctions::readWholeBuffer($this->socket);
+        $buffer = fread($this->socket, 8192);
 
         $this->_frames = array_merge($this->_frames, $this->_connection->readFrame($buffer));
 

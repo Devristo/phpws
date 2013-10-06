@@ -31,7 +31,7 @@ class WebSocketServer implements WebSocketObserver
     protected $sockets;
 
     /**
-     * @var IWebSocketConnection[]|\SplObjectStorage
+     * @var \SplObjectStorage|IWebSocketConnection[]
      */
     protected $_connections = array();
 
@@ -293,11 +293,11 @@ class WebSocketServer implements WebSocketObserver
      * Adds a user to a IWebSocketResourceHandler by using the request uri in the GET request of
      * the client's opening handshake
      *
-     * @param \Devristo\Phpws\Protocol\WebSocketConnection $user
+     * @param \Devristo\Phpws\Protocol\IWebSocketConnection $user
      * @param $uri
      * @return IWebSocketUriHandler Instance of the resource handler the user has been added to.
      */
-    protected function addConnectionToUriHandler(WebSocketConnection $user, $uri)
+    protected function addConnectionToUriHandler(IWebSocketConnection $user, $uri)
     {
         $url = parse_url($uri);
 
@@ -436,6 +436,8 @@ class WebSocketServer implements WebSocketObserver
     /**
      *
      * @param \Devristo\Phpws\Server\UriHandler\IWebSocketUriHandler $uri
+     *
+     * @return \Devristo\Phpws\Server\UriHandler\IWebSocketUriHandler
      */
     public function getUriHandler($uri)
     {

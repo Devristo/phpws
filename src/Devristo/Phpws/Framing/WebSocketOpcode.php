@@ -31,6 +31,8 @@ class WebSocketOpcode
     /**
      * Check if a opcode is a control frame. Control frames should be handled internally by the server.
      * @param int $type
+     *
+     * @return bool whether the opcode is considered to be a control frame or not
      */
     public static function isControlFrame($type)
     {

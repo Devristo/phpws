@@ -56,6 +56,10 @@ class WebSocketMessage implements IWebSocketMessage
 
     public static function fromFrame(IWebSocketFrame $frame)
     {
+        assert($frame instanceof WebSocketFrame);
+
+        /** @var $frame WebSocketFrame */
+
         $o = new self();
         $o->takeFrame($frame);
 

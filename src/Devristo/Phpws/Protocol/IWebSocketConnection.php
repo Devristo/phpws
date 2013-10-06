@@ -14,6 +14,8 @@ use Devristo\Phpws\Messaging\IWebSocketMessage;
 interface IWebSocketConnection
 {
 
+    public function getId();
+
     public function sendHandshakeResponse();
 
     public function setRole($role);

@@ -9,7 +9,6 @@
 namespace Devristo\Phpws\Client;
 
 use Devristo\Phpws\Client\HixieKey;
-use Devristo\Phpws\Exceptions\WebSocketInvalidKeyException;
 
 class WebSocketFunctions
 {
@@ -70,35 +69,6 @@ class WebSocketFunctions
     public static function calcHybiResponse($challenge)
     {
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
-    }
-
-    /**
-     * Calculate the #76 draft key based on the 2 challenges from the client and the last 8 bytes of the request
-     *
-     * @param string $key1 Sec-WebSocket-Key1
-     * @param string $key2 Sec-Websocket-Key2
-     * @param string $l8b Last 8 bytes of the client's opening handshake
-     */
-    public static function calcHixieResponse($key1, $key2, $l8b)
-    {
-        // Get the numbers from the opening handshake
-        $numbers1 = preg_replace("/[^0-9]/", "", $key1);
-        $numbers2 = preg_replace("/[^0-9]/", "", $key2);
-
-        //Count spaces
-        $spaces1 = substr_count($key1, " ");
-        $spaces2 = substr_count($key2, " ");
-
-        if ($spaces1 == 0 || $spaces2 == 0) {
-            throw new WebSocketInvalidKeyException($key1, $key2, $l8b);
-        }
-
-        // Key is the number divided by the amount of spaces expressed as a big-endian 32 bit integer
-        $key1_sec = pack("N", $numbers1 / $spaces1);
-        $key2_sec = pack("N", $numbers2 / $spaces2);
-
-        // The response is the md5-hash of the 2 keys and the last 8 bytes of the opening handshake, expressed as a binary string
-        return md5($key1_sec . $key2_sec . $l8b, 1);
     }
 
     public static function randHybiKey()

@@ -51,6 +51,9 @@ class WebSocketConnectionHixie extends WebSocketConnection
      * @param string $key1 Sec-WebSocket-Key1
      * @param string $key2 Sec-Websocket-Key2
      * @param string $l8b Last 8 bytes of the client's opening handshake
+     *
+     * @throws \Devristo\Phpws\Exceptions\WebSocketInvalidKeyException
+     * @return string Hixie compatible response to client's challenge
      */
     private static function calcHixieResponse($key1, $key2, $l8b)
     {

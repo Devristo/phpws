@@ -1,0 +1,16 @@
+{
+    "name": "devristo/phpws",
+    "description": "WebSocket Server and Client library for PHP",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "Devristo",
+            "email": "chris@devristo.com"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "Devristo\\Phpws\\": "src/"
+        }
+    }
+}

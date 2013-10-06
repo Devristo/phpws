@@ -47,7 +47,6 @@ Server Example
 	<?php
 
 	// Run from command prompt > php demo.php
-	require_once("websocket.server.php");
 
 	/**
 	 * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
@@ -58,13 +57,13 @@ Server Example
 	 */
 	class DemoEchoHandler extends WebSocketUriHandler{
 		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			$this->say("[ECHO] {$msg->getData()}");
+			echo "[ECHO] {$msg->getData()}\n";
 			// Echo
 			$user->sendMessage($msg);
 		}
 
 		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj){
-			$this->say("[DEMO] Admin TEST received!");
+			echo "[DEMO] Admin TEST received!\n";
 
 			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
 			$user->sendFrame($frame);
@@ -90,26 +89,22 @@ Server Example
 		}
 
 		public function onConnect(IWebSocketConnection $user){
-			$this->say("[DEMO] {$user->getId()} connected");
+			echo "[DEMO] {$user->getId()} connected\n";
 		}
 
 		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
+			echo "[DEMO] {$user->getId()} says '{$msg->getData()}'\n";
 		}
 
 		public function onDisconnect(IWebSocketConnection $user){
-			$this->say("[DEMO] {$user->getId()} disconnected");
+			echo "[DEMO] {$user->getId()} disconnected\n";
 		}
 
 		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			$this->say("[DEMO] Admin Message received!");
+			echo "[DEMO] Admin Message received!\n";
 
 			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
 			$user->sendFrame($frame);
-		}
-
-		public function say($msg){
-			echo "$msg \r\n";
 		}
 
 		public function run(){
@@ -126,7 +121,6 @@ Client Example
 ---------------------
 ```php
       <?php
-	require_once("websocket.client.php");
 
 	$input = "Hello World!";
 	$msg = WebSocketMessage::create($input);

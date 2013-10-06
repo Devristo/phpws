@@ -1,3 +1,2 @@
-phpws/.settings
-phpws/.buildpath
-/nbproject/private/
+/.idea
+/phpunit.phar

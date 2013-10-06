@@ -1,5 +1,10 @@
 <?php
 
+require_once(__DIR__."/../SplClassLoader.php");
+
+$loader = new SplClassLoader("Devristo\\Phpws", __DIR__."/../src");
+$loader->register();
+
 use Devristo\Phpws\Exceptions\WebSocketMessageNotFinalised;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;

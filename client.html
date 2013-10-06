@@ -40,12 +40,10 @@
                 catch (ex) {
                     log(ex);
                 }
-                $("msg").focus();
+                document.getElementById("msg").focus();
             }
 
             function send() {
-
-
                 var msg = document.getElementById('msg').value;
 
                 try {
@@ -61,12 +59,8 @@
                 socket = null;
             }
 
-            // Utilities
-            function $(id) {
-                return document.getElementById(id);
-            }
             function log(msg) {
-                $("log").innerHTML += "<br>" + msg;
+                document.getElementById("log").innerHTML += "<br>" + msg;
             }
             function onkey(event) {
                 if (event.keyCode == 13) {

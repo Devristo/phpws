@@ -11,7 +11,6 @@ use Devristo\Phpws\Server\UriHandler\IWebSocketUriHandler;
 use Exception;
 use SplObjectStorage;
 
-
 /**
  * WebSocketServer
  *
@@ -172,8 +171,6 @@ class WebSocketServer implements WebSocketObserver
 
 
             foreach ($changed as $resource) {
-                stream_set_blocking($resource, 0);
-
                 if ($resource == $this->master) {
                     $this->acceptSocket();
                 } else {
@@ -216,6 +213,8 @@ class WebSocketServer implements WebSocketObserver
     {
         try {
             $client = stream_socket_accept($this->master);
+            stream_set_blocking($client, 0);
+
             if ($client === false) {
                 echo 'socket_accept() failed\n';
             }

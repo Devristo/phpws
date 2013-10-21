@@ -1,5 +1,12 @@
 #!/php -q
 <?php
+
+require_once("./SplClassLoader.php");
+
+$loader = new SplClassLoader("Devristo\\Phpws","src");
+$loader->register();
+
+
 // Run from command prompt > php demo.php
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;

@@ -143,6 +143,11 @@ class WebSocket implements WebSocketObserver
         return $this->_timeOut;
     }
 
+    public function hasMessages()
+    {
+        return count($this->_messages);
+    }
+
     public function setTimeOut($seconds)
     {
         $this->_timeOut = $seconds;

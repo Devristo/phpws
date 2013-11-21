@@ -40,7 +40,7 @@ class WebSocketConnectionHybi extends WebSocketConnection
 
         $this->_socket->write($response);
 
-        echo "HYBI Response SENT!\n";
+        $this->logger->debug("HYBI Response SENT!");
     }
 
     private static function calcHybiResponse($challenge)

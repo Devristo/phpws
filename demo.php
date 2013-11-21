@@ -1,10 +1,7 @@
 #!/php -q
 <?php
 
-require_once("./SplClassLoader.php");
-
-$loader = new SplClassLoader("Devristo\\Phpws","src");
-$loader->register();
+require_once(__DIR__."/vendor/autoload.php");
 
 
 // Run from command prompt > php demo.php
@@ -26,13 +23,13 @@ use Devristo\Phpws\Server\WebSocketServer;
 class DemoEchoHandler extends WebSocketUriHandler {
 
     public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
-        $this->say("[ECHO] " . strlen($msg->getData()) . " bytes");
+        $this->logger->notice("[ECHO] " . strlen($msg->getData()) . " bytes");
         // Echo
         $user->sendMessage($msg);
     }
 
     public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj) {
-        $this->say("[DEMO] Admin TEST received!");
+        $this->logger->notice("[DEMO] Admin TEST received!");
 
         $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
         $user->sendFrame($frame);
@@ -53,33 +50,34 @@ class DemoSocketServer implements IWebSocketServerObserver {
     protected $server;
 
     public function __construct() {
-        $this->server = new WebSocketServer("tcp://0.0.0.0:12345", 'superdupersecretkey');
+        $logger = new \Zend\Log\Logger();
+        $logger->addWriter(new Zend\Log\Writer\Stream("php://output"));
+
+        $this->logger = $logger;
+
+        $this->server = new WebSocketServer("tcp://0.0.0.0:12345", $logger);
         $this->server->addObserver($this);
 
-        $this->server->addUriHandler("echo", new DemoEchoHandler());
+        $this->server->addUriHandler("echo", new DemoEchoHandler($logger));
     }
 
     public function onConnect(IWebSocketConnection $user) {
-        $this->say("[DEMO] {$user->getId()} connected");
+        $this->logger->notice("[DEMO] {$user->getId()} connected");
     }
 
     public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
-        //$this->say("[DEMO] {$user->getId()} says '{$msg->getData()}'");
+        //$this->logger->notice("[DEMO] {$user->getId()} says '{$msg->getData()}'");
     }
 
     public function onDisconnect(IWebSocketConnection $user) {
-        $this->say("[DEMO] {$user->getId()} disconnected");
+        $this->logger->notice("[DEMO] {$user->getId()} disconnected");
     }
 
     public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
-        $this->say("[DEMO] Admin Message received!");
+        $this->logger->notice("[DEMO] Admin Message received!");
 
         $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
         $user->sendFrame($frame);
-    }
-
-    public function say($msg) {
-        echo "$msg \r\n";
     }
 
     public function run() {

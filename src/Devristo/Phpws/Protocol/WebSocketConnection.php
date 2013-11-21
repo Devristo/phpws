@@ -11,11 +11,18 @@ namespace Devristo\Phpws\Protocol;
 use Devristo\Phpws\Framing\IWebSocketFrame;
 use Devristo\Phpws\Messaging\IWebSocketMessage;
 use Devristo\Phpws\Protocol\WebSocketStream;
+use Zend\Log\LoggerAwareInterface;
+use Zend\Log\LoggerInterface;
 
-abstract class WebSocketConnection implements IWebSocketConnection
+abstract class WebSocketConnection implements IWebSocketConnection, LoggerAwareInterface
 {
 
     protected $_headers = array();
+
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
 
     /**
      *
@@ -34,12 +41,12 @@ abstract class WebSocketConnection implements IWebSocketConnection
 
     public function getIp()
     {
-        return stream_socket_get_name($this->_socket->getResource(), true);
+        return stream_socket_get_name($this->_socket->getSocket(), true);
     }
 
     public function getId()
     {
-        return (int)$this->_socket->getResource();
+        return (int)$this->_socket->getSocket();
     }
 
     public function sendFrame(IWebSocketFrame $frame)
@@ -154,4 +161,7 @@ abstract class WebSocketConnection implements IWebSocketConnection
         return $this->_socket;
     }
 
+    public function setLogger(LoggerInterface $logger){
+        $this->logger = $logger;
+    }
 }

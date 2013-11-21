@@ -6,12 +6,17 @@ use Devristo\Phpws\Messaging\IWebSocketMessage;
 use Devristo\Phpws\Protocol\IWebSocketConnection;
 use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
 use Devristo\Phpws\Protocol\WebSocketConnectionFlash;
+use Devristo\Phpws\Server\ISocketStream;
 use Exception;
+use Zend\Log\LoggerAwareInterface;
+use Zend\Log\LoggerInterface;
 
-class WebSocketStream
+class WebSocketStream implements ISocketStream, LoggerAwareInterface
 {
 
     private $_socket = null;
+
+    protected $logger;
 
     /**
      *
@@ -67,7 +72,7 @@ class WebSocketStream
 
     public function establishConnection($data)
     {
-        $this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data);
+        $this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data, $this->logger);
 
         if ($this->_connection instanceof WebSocketConnectionFlash)
             return;
@@ -87,7 +92,7 @@ class WebSocketStream
         }
     }
 
-    public function mustWrite()
+    public function requestsWrite()
     {
         return strlen($this->_writeBuffer);
     }
@@ -138,7 +143,7 @@ class WebSocketStream
         }
     }
 
-    public function getResource()
+    public function getSocket()
     {
         return $this->_socket;
     }
@@ -157,4 +162,18 @@ class WebSocketStream
         $this->_observers[] = $s;
     }
 
+    public function acceptConnection()
+    {
+        throw new \BadMethodCallException();
+    }
+
+    public function isServer()
+    {
+        return false;
+    }
+
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
 }

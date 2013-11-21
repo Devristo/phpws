@@ -1,9 +1,6 @@
 <?php
 
-require_once(__DIR__."/../SplClassLoader.php");
-
-$loader = new SplClassLoader("Devristo\\Phpws", __DIR__."/../src");
-$loader->register();
+require_once(__DIR__."/../vendor/autoload.php");
 
 use Devristo\Phpws\Client\WebSocket;
 use Devristo\Phpws\Framing\WebSocketFrame;
@@ -25,7 +22,7 @@ class TestServer extends PHPUnit_Framework_TestCase {
 
 
 
-        $client = new WebSocket("ws://127.0.0.1:12345/echo/");
+        $client = new WebSocket("wss://127.0.0.1:12345/echo/");
         $client->open();
         $client->sendFrame($frame);
 
@@ -40,7 +37,7 @@ class TestServer extends PHPUnit_Framework_TestCase {
         $input = "Hello World!";
         $msg = WebSocketMessage::create($input);
 
-        $client = new WebSocket("ws://127.0.0.1:12345/echo/");
+        $client = new WebSocket("wss://127.0.0.1:12345/echo/");
         $client->open();
         $client->sendMessage($msg);
 
@@ -56,7 +53,7 @@ class TestServer extends PHPUnit_Framework_TestCase {
         $input2 = str_repeat("b", 1024);
         $msg = WebSocketMessage::create($input);
 
-        $client = new WebSocket("ws://127.0.0.1:12345/echo/");
+        $client = new WebSocket("wss://127.0.0.1:12345/echo/");
         $client->setTimeOut(1000);
         $client->open();
         $client->sendMessage($msg);

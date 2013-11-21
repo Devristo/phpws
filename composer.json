@@ -12,5 +12,8 @@
         "psr-0": {
             "Devristo\\Phpws\\": "src/"
         }
+    },
+    "require": {
+        "zendframework/zend-log": "2.*"
     }
 }

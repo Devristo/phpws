@@ -13,26 +13,29 @@ use Devristo\Phpws\Protocol\WebSocketConnectionHixie;
 use Devristo\Phpws\Protocol\WebSocketConnectionHybi;
 use Devristo\Phpws\Protocol\WebSocketConnectionRole;
 use Devristo\Phpws\Protocol\WebSocketStream;
+use Zend\Log\LoggerInterface;
 
 class WebSocketConnectionFactory
 {
 
-    public static function fromSocketData(WebSocketStream $socket, $data)
+    public static function fromSocketData(WebSocketStream $socket, $data, LoggerInterface $logger)
     {
         $headers = self::parseHeaders($data);
 
         if (isset($headers['Sec-Websocket-Key1'])) {
             $s = new WebSocketConnectionHixie($socket, $headers, $data);
+            $s->setLogger($logger);
             $s->sendHandshakeResponse();
         } else if (strpos($data, '<policy-file-request/>') === 0) {
             $s = new WebSocketConnectionFlash($socket, $data);
+            $s->setLogger($logger);
         } else {
             $s = new WebSocketConnectionHybi($socket, $headers);
+            $s->setLogger($logger);
             $s->sendHandshakeResponse();
         }
 
         $s->setRole(WebSocketConnectionRole::SERVER);
-
 
         return $s;
     }

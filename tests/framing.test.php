@@ -1,9 +1,6 @@
 <?php
 
-require_once(__DIR__."/../SplClassLoader.php");
-
-$loader = new SplClassLoader("Devristo\\Phpws", __DIR__."/../src");
-$loader->register();
+require_once(__DIR__."/../vendor/autoload.php");
 
 use Devristo\Phpws\Exceptions\WebSocketMessageNotFinalised;
 use Devristo\Phpws\Framing\WebSocketFrame;

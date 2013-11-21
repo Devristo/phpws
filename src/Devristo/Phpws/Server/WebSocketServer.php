@@ -10,13 +10,14 @@ use Devristo\Phpws\Protocol\WebSocketStream;
 use Devristo\Phpws\Server\UriHandler\IWebSocketUriHandler;
 use Exception;
 use SplObjectStorage;
+use Zend\Log\LoggerInterface;
 
 /**
  * WebSocketServer
  *
  * @author Chris
  */
-class WebSocketServer implements WebSocketObserver
+class WebSocketServer implements WebSocketObserver, ISocketStream
 {
 
     protected $master;
@@ -62,19 +63,17 @@ class WebSocketServer implements WebSocketObserver
      * Must be implemented by all extending classes
      *
      * @param $url
-     * @param bool $showHeaders
+     * @param null $logger
      */
-    public function __construct($url, $showHeaders = false)
+    public function __construct($url, LoggerInterface $logger)
     {
-        define("WS_DEBUG_HEADER", $showHeaders);
-
-
         $this->_url = $url;
 
-        $this->sockets = new SplObjectStorage();
         $this->_connections = new SplObjectStorage();
 
         $this->_context = stream_context_create();
+        $this->_logger = $logger;
+        $this->_server = new SocketServer($logger);
     }
 
     public function getStreamContext()
@@ -133,124 +132,34 @@ class WebSocketServer implements WebSocketObserver
 
         $this->master = stream_socket_server($this->_url, $errno, $err, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $this->_context);
 
-        $this->say("PHP WebSocket Server");
-        $this->say("========================================");
-        $this->say("Server Started : " . date('Y-m-d H:i:s'));
-        $this->say("Listening on   : " . $this->_url);
-        $this->say("========================================");
+        $this->_logger->notice(sprintf("phpws listening on %s", $this->_url));
 
         if ($this->master == false) {
-            $this->say("Error: $err");
+            $this->_logger->err("Error: $err");
             return;
         }
 
-        $this->sockets->attach(new WebSocketStream($this, $this->master));
-
-
-        while (true) {
-
-            clearstatcache();
-            // Garbage Collection (PHP >= 5.3)
-            if (function_exists('gc_collect_cycles')) {
-                gc_collect_cycles();
-            }
-
-            //$this->debug("Blocking on socket_select()");
-            // Retreive sockets which are 'Changed'
-            $changed = $this->getResources();
-            $write = $this->getWriteStreams();
-            $except = null;
-
-            if (@stream_select($changed, $write, $except, null) === false) {
-                $this->say("Select failed!");
-                break;
-            }
-
-
-            //$this->debug("Socket selected");
-
-
-            foreach ($changed as $resource) {
-                if ($resource == $this->master) {
-                    $this->acceptSocket();
-                } else {
-                    $buffer = fread($resource, 8192);
-
-                    $socket = $this->getSocketByResource($resource);
-
-                    // If read returns false, close the stream and continue with the next socket
-                    if ($buffer === false) {
-                        $socket->close();
-                        // Skip to next stream
-                        continue;
-                    }
-
-                    $bytes = strlen($buffer);
-
-                    if ($bytes === 0) {
-                        $socket->close();
-                    } else if ($socket != null) {
-                        $socket->onData($buffer);
-                    }
-                }
-            }
-
-            if (is_array($write)) {
-                foreach ($write as $s) {
-                    $o = $this->getSocketByResource($s);
-                    if ($o != null)
-                        $o->mayWrite();
-                }
-            }
-
-
-            //$this->debug('Number of users connected: '.count($this->getConnections()));
-            $this->purgeUsers();
-        }
+        $this->_server->attachStream($this);
+        $this->_server->run();
     }
 
-    private function acceptSocket()
+    public function acceptConnection()
     {
         try {
             $client = stream_socket_accept($this->master);
             stream_set_blocking($client, 0);
 
             if ($client === false) {
-                echo 'socket_accept() failed\n';
+                $this->_logger->warn("Failed to accept client connection");
             }
+            $stream = new WebSocketStream($this, $client);
+            $stream->setLogger($this->_logger);
+            $this->_server->attachStream($stream);
 
-            $this->sockets->attach(new WebSocketStream($this, $client));
-
-            $this->debug("Socket accepted");
+            $this->_logger->info("WebSocket client accepted");
         } catch (Exception $e) {
-            $this->say($e);
+            $this->_logger->crit("Failed to accept client connection");
         }
-    }
-
-    /**
-     *
-     * @param resource $res
-     * @return \Devristo\Phpws\Protocol\WebSocketStream
-     */
-    private function getSocketByResource($res)
-    {
-        foreach ($this->sockets as $socket) {
-            if ($socket->getResource() == $res)
-                return $socket;
-        }
-
-        return null;
-    }
-
-    private function getResources()
-    {
-        $resources = array();
-
-        foreach ($this->sockets as $socket) {
-            $resources[] = $socket->getResource();
-        }
-
-        return $resources;
     }
 
     public function addObserver(IWebSocketServerObserver $o)
@@ -277,7 +186,7 @@ class WebSocketServer implements WebSocketObserver
      */
     protected function dispatchMessage(IWebSocketConnection $user, IWebSocketMessage $msg)
     {
-        $this->debug("dispatchMessage");
+        $this->_logger->debug("Dispatching message to URI handlers and Observers");
 
         if (array_key_exists($this->_connections[$user], $this->uriHandlers)) {
             $this->uriHandlers[$this->_connections[$user]]->onMessage($user, $msg);
@@ -308,7 +217,7 @@ class WebSocketServer implements WebSocketObserver
         if (isset($url['path']) == false)
             $url['path'] = '/';
 
-        $pathSplit = preg_split("/\//", $url['path'], 0, PREG_SPLIT_NO_EMPTY);
+        $pathSplit = preg_split("/\\//", $url['path'], 0, PREG_SPLIT_NO_EMPTY);
         $resource = array_pop($pathSplit);
 
         $user->parameters = $query;
@@ -318,18 +227,8 @@ class WebSocketServer implements WebSocketObserver
             $this->uriHandlers[$resource]->addConnection($user);
             $this->_connections[$user] = $resource;
 
-            $this->say("User has been added to $resource");
+            $this->_logger->notice("User has been added to $resource");
         }
-    }
-
-    /**
-     * Output a line to stdout
-     *
-     * @param string $msg Message to output to the STDOUT
-     */
-    public function say($msg = "")
-    {
-        echo date("Y-m-d H:i:s") . " | " . $msg . "\n";
     }
 
     public function onConnectionEstablished(WebSocketStream $s)
@@ -354,7 +253,7 @@ class WebSocketServer implements WebSocketObserver
         try {
             $this->dispatchMessage($connection, $msg);
         } catch (Exception $e) {
-            $this->say("Exception occurred while handling message:\r\n" . $e->getTraceAsString());
+            $this->_logger->error("Exception occurred while handling message:\r\n" . $e->getTraceAsString());
         }
     }
 
@@ -371,7 +270,7 @@ class WebSocketServer implements WebSocketObserver
                 $this->_connections->detach($socket->getConnection());
             }
         } catch (Exception $e) {
-            $this->say("Exception occurred while handling message:\r\n" . $e->getTraceAsString());
+            $this->_logger->err("Exception occurred while handling message:\r\n" . $e->getTraceAsString());
         }
 
 
@@ -384,7 +283,7 @@ class WebSocketServer implements WebSocketObserver
             }
         }
 
-        $this->sockets->detach($socket);
+        $this->_server->detachStream($socket);
     }
 
     protected function purgeUsers()
@@ -419,19 +318,6 @@ class WebSocketServer implements WebSocketObserver
         $connection->disconnect();
     }
 
-    protected function getWriteStreams()
-    {
-        $resources = array();
-
-        foreach ($this->sockets as $socket) {
-            if ($socket->mustWrite())
-                $resources[] = $socket->getResource();
-        }
-
-        return $resources;
-    }
-
-
     /**
      *
      * @param \Devristo\Phpws\Server\UriHandler\IWebSocketUriHandler $uri
@@ -443,5 +329,34 @@ class WebSocketServer implements WebSocketObserver
         return $this->uriHandlers[$uri];
     }
 
+    public function onData($data)
+    {
+        throw new \BadMethodCallException();
+    }
+
+    public function close()
+    {
+        fclose($this->getSocket());
+    }
+
+    public function mayWrite()
+    {
+        return;
+    }
+
+    public function requestsWrite()
+    {
+        return false;
+    }
+
+    public function getSocket()
+    {
+        return $this->master;
+    }
+
+    public function isServer()
+    {
+        return true;
+    }
 }
 

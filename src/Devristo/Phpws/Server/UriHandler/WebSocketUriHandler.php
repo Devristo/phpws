@@ -6,6 +6,7 @@ use Devristo\Phpws\Messaging\IWebSocketMessage;
 use Devristo\Phpws\Protocol\IWebSocketConnection;
 use Devristo\Phpws\Server\WebSocketServer;
 use SplObjectStorage;
+use Zend\Log\LoggerInterface;
 
 abstract class WebSocketUriHandler implements IWebSocketUriHandler
 {
@@ -24,9 +25,15 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler
      */
     protected $server;
 
-    public function __construct()
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    public function __construct($logger)
     {
         $this->users = new SplObjectStorage();
+        $this->logger = $logger;
     }
 
     public function addConnection(IWebSocketConnection $user)
@@ -43,11 +50,6 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler
     public function setServer(WebSocketServer $server)
     {
         $this->server = $server;
-    }
-
-    public function say($msg = '')
-    {
-        return $this->server->say($msg);
     }
 
     public function send(IWebSocketConnection $client, $str)

@@ -114,7 +114,7 @@ class SocketServer {
                 if ($stream->isServer()) {
                     $stream->acceptConnection();
                 } else {
-                    $buffer = fread($resource, 8192);
+                    $buffer = @fread($resource, 8192);
 
                     // If read returns false, close the stream and continue with the next socket
                     if ($buffer === false) {

@@ -10,8 +10,7 @@ use Devristo\Phpws\Server\SocketServer;
  * Time: 21:32
  */
 
-class TcpStream implements ISocketStream{
-    protected $websocket;
+class TcpStream implements ISocketStream, \Zend\EventManager\EventManagerAwareInterface{
     protected $socket;
 
     protected $id;
@@ -20,7 +19,7 @@ class TcpStream implements ISocketStream{
     protected $closing = false;
     protected $closed = false;
 
-    public function __construct(SocketServer $server, $address, IWebSocketConnection $connection, \Zend\Log\LoggerInterface $logger){
+    public function __construct(SocketServer $server, $address, \Zend\Log\LoggerInterface $logger){
         $this->id = uniqid("tcp-$address-");
 
         $this->address = $address;
@@ -32,7 +31,7 @@ class TcpStream implements ISocketStream{
         if(!$this->socket)
             throw new BadMethodCallException("Cannot connect to $address");
 
-        $this->websocket = $connection;
+        $this->_eventManager = new \Zend\EventManager\EventManager(__CLASS__);
     }
 
     public function getId(){
@@ -41,30 +40,21 @@ class TcpStream implements ISocketStream{
 
     public function onData($data)
     {
-        $this->logger->notice(sprintf("Got %d bytes on %s from %s proxying to user %s", strlen($data), $this->getId(), $this->getAddress(), $this->websocket->getId()));
-        $message =
-            [
-                'connection'    => $this->getId(),
-                'event'         => 'data',
-                'data'          => $data
-            ];
-
-        $this->websocket->sendString(json_encode($message));
+        $this->_eventManager->trigger('data', $this, array(
+            'data' => $data
+        ));
     }
 
-    public function close()
+    public function close($triggerEvent=true)
     {
-        $this->logger->debug(sprintf("Closing connection %s to %s", $this->getId(), $this->address));
-        @fclose($this->getSocket());
-        $this->writeBuffer = '';
+        if(!$this->isClosed()){
+            $this->logger->debug(sprintf("Closing connection %s to %s", $this->getId(), $this->address));
+            @fclose($this->getSocket());
+            $this->closed = true;
+            $this->writeBuffer = '';
 
-        $message =
-            [
-                'connection'    => $this->getId(),
-                'event'         => 'close'
-            ];
-
-        $this->websocket->sendString(json_encode($message));
+            $this->_eventManager->trigger('close', $this);
+        }
     }
 
     public function mayWrite()
@@ -124,5 +114,28 @@ class TcpStream implements ISocketStream{
 
     public function getAddress(){
         return $this->address;
+    }
+
+    /**
+     * Inject an EventManager instance
+     *
+     * @param \Zend\EventManager\EventManagerInterface $eventManager
+     * @return void
+     */
+    public function setEventManager(\Zend\EventManager\EventManagerInterface $eventManager)
+    {
+        $this->_eventManager = $eventManager;
+    }
+
+    /**
+     * Retrieve the event manager
+     *
+     * Lazy-loads an EventManager instance if none registered.
+     *
+     * @return \Zend\EventManager\EventManagerInterface
+     */
+    public function getEventManager()
+    {
+        return $this->_eventManager;
     }
 }

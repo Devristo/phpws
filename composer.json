@@ -14,6 +14,7 @@
         }
     },
     "require": {
-        "zendframework/zend-log": "2.*"
+        "zendframework/zend-log": "2.*",
+        "zendframework/zend-eventmanager": "2.2.5"
     }
 }

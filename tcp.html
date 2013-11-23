@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+</head>
+<body>
+
+
+<script>
+    var webSocket = new function(){
+        var self = this;
+        var promisses = {};
+        var transactionId = 0;
+
+        var openPromise = $.Deferred();
+
+        this.socket = new WebSocket("ws://localhost:12345/echo");
+
+        this.socket.addEventListener("open", function(){
+            openPromise.resolveWith(self);
+        });
+
+        this.socket.addEventListener("message", function(message){
+            message = JSON.parse(message.data);
+
+            if ('tag' in message && message.tag in promisses){
+                promisses[message.tag].resolveWith(self, [message]);
+            }
+        });
+
+        this.getResponseTo = function(message){
+            var promise = $.Deferred();
+            transactionId = transactionId + 1;
+            promisses[transactionId] = promise;
+
+            message.tag = transactionId;
+
+            this.socket.send(JSON.stringify(message));
+
+            return promise;
+        };
+
+        this.open = function(){
+            return openPromise;
+        };
+
+        this.addEventListener = function(){
+            this.socket.addEventListener.apply(this.socket, arguments);
+        }
+
+        this.sendObject = function(message){
+            this.socket.send(JSON.stringify(message));
+        }
+    };
+
+    var Connection = (function(webSocket){
+        var connections = {};
+
+        // Fire events on incoming data for a connection
+        webSocket.addEventListener("message", function(message){
+            message = JSON.parse(message.data);
+
+            if('connection' in message && message.connection in connections){
+                connections[message.connection].publish(message.event, message);
+            }
+        });
+
+        return function(address){
+            var self = this;
+            this.id = null;
+
+            var callbacks = {};
+
+            var connectPromise = $.Deferred();
+
+            webSocket.getResponseTo( {
+                'command'   : 'connect',
+                'address'   : address
+            }).then(function(message){
+                self.id = message.connection;
+                connections[self.id] = self;
+                self.publish("connect");
+                connectPromise.resolveWith(self);
+            });
+
+            this.connect = function(){
+                return connectPromise;
+            }
+
+            this.subscribe = function(event, callback){
+                if(!(event in callbacks))
+                    callbacks[event] = $.Callbacks();
+
+                callbacks[event].add.apply(callbacks[event], Array.prototype.slice.call(arguments, 1));
+                return this;
+            };
+
+            this.unsubscribe = function(event, callback){
+                if(event in callbacks){
+                    callbacks[event].remove.apply(callbacks[event], Array.prototype.slice.call(arguments, 1));
+                }
+
+                return this;
+            };
+
+            this.publish = function(event){
+                if(event in callbacks){
+                    callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
+                }
+
+                return this;
+            };
+
+            this.send = function(message){
+                webSocket.sendObject({
+                    'command': 'write',
+                    'connection': self.id,
+                    'data': message
+                });
+
+                return this;
+            };
+
+            this.close = function(){
+                webSocket.send({
+                    'command': 'close',
+                    'connection': self.id
+                });
+            };
+        };
+    })(webSocket);
+
+    // When opened just ask the server to open a connection to google.com on port 80. When opened send a HTTP GET
+    // request. Log any responses to console
+    webSocket.open().then(function(){
+        console.log("Opened WebSocket connection");
+
+        var connection = new Connection("google.com:80");
+        connection.subscribe("data", function(message){
+            console.log(message.data);
+        }).connect().then(
+            function(){
+                this.send("GET / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n");
+            }
+        );
+    });
+</script>
+
+</body>
+</html>

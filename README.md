@@ -24,7 +24,7 @@ Client
 
 Known Issues
 -------------
-  * SSL support not well field tested.
+  * SSL support not well field tested. See issue #11 if you have any problems getting it running.
   * Lacks ORIGIN checking (can be implemented manually in onConnect using getHeaders(), just disconnect the user when you dont like the Origin header)
   * No support for extension data from the HyBi specs.
 

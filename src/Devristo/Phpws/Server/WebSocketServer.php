@@ -227,7 +227,7 @@ class WebSocketServer implements WebSocketObserver, ISocketStream
             $this->uriHandlers[$resource]->addConnection($user);
             $this->_connections[$user] = $resource;
 
-            $this->_logger->notice("User has been added to $resource");
+            $this->_logger->notice("User {$user->getId()} has been added to $resource");
         }
     }
 
@@ -357,6 +357,10 @@ class WebSocketServer implements WebSocketObserver, ISocketStream
     public function isServer()
     {
         return true;
+    }
+
+    public function isClosed(){
+        return false;
     }
 }
 

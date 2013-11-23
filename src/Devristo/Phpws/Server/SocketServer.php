@@ -48,6 +48,16 @@ class SocketServer {
         return $this->streams;
     }
 
+    private function detachClosedStreams(){
+        $closed = array();
+        foreach($this->streams as $stream)
+            if($stream->isClosed())
+                $closed[] = $stream;
+
+        foreach($closed as $stream)
+            $this->detachStream($stream);
+    }
+
     public function getSockets(){
         $sockets = array();
 
@@ -109,6 +119,7 @@ class SocketServer {
                     // If read returns false, close the stream and continue with the next socket
                     if ($buffer === false) {
                         $stream->close();
+                        $this->detachStream($stream);
                         // Skip to next stream
                         continue;
                     }
@@ -117,6 +128,7 @@ class SocketServer {
 
                     if ($bytes === 0) {
                         $stream->close();
+                        $this->detachStream($stream);
                     } else if ($stream != null) {
                         $stream->onData($buffer);
                     }

@@ -13,6 +13,7 @@ use Devristo\Phpws\Protocol\IWebSocketConnection;
 use Devristo\Phpws\Server\IWebSocketServerObserver;
 use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
+use Devristo\Phpws\Utilities\DefaultDict;
 
 /**
  * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
@@ -23,15 +24,41 @@ use Devristo\Phpws\Server\WebSocketServer;
  */
 class DemoSslEchoHandler extends WebSocketUriHandler {
     /**
-     * @var TcpStream[]
+     * @var TcpStream[][]
      */
-    public $streams = [];
-
+    protected $streams;
     protected $server;
+
+    /**
+     * @param IWebSocketConnection $user
+     * @param $id
+     * @return TcpStream|null
+     */
+    protected function getStream(IWebSocketConnection $user, $id){
+        $userStreams = $this->getStreamsByUser($user);
+
+        return array_key_exists($id, $userStreams) ? $userStreams[$id] : null;
+    }
+
+    /**
+     * @param IWebSocketConnection $user
+     * @return TcpStream[]
+     */
+    protected function getStreamsByUser(IWebSocketConnection $user){
+        return $this->streams[$user->getId()];
+    }
 
     public function __construct(\Devristo\Phpws\Server\SocketServer $server, $logger){
         parent::__construct($logger);
+        $this->streams = new DefaultDict(array());
         $this->socketServer = $server;
+    }
+
+    public function onDisconnect(IWebSocketConnection $user){
+        $this->logger->notice(sprintf("User %s has been removed from proxy", $user->getId()));
+        foreach($this->getStreamsByUser($user) as $stream){
+            $stream->close();
+        }
     }
 
     public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
@@ -52,11 +79,12 @@ class DemoSslEchoHandler extends WebSocketUriHandler {
 
     protected function requestConnect(IWebSocketConnection $user, $message){
         $address = $message->address;
+        $this->logger->notice(sprintf("User %s requests connection to %s", $user->getId(), $address));
 
         try{
-            $stream = new TcpStream($this->socketServer, $address, $user);
+            $stream = new TcpStream($this->socketServer, $address, $user, $this->logger);
 
-            $this->streams[$stream->getId()] = $stream;
+            $this->streams[$user->getId()][$stream->getId()] = $stream;
 
             $user->sendString(json_encode([
                 'connection'        => $stream->getId(),
@@ -65,7 +93,6 @@ class DemoSslEchoHandler extends WebSocketUriHandler {
             ]));
         } catch(Exception $e){
             $user->sendString(json_encode([
-                'connection'        => $stream->getId(),
                 'event'             => 'error',
                 'tag'               => $message->tag ?: null,
                 'message'           => $e->getMessage()
@@ -74,12 +101,14 @@ class DemoSslEchoHandler extends WebSocketUriHandler {
     }
 
     protected function requestWrite(IWebSocketConnection $user, $message){
-        $stream = $this->streams[$message->connection];
+        $stream = $this->getStream($user, $message->connection);
+        $this->logger->notice(sprintf("User %s writes %d bytes to connection %s to %s", $user->getId(), strlen($message->data), $stream->getId(), $stream->getAddress()));
         $stream->write($message->data);
     }
 
     protected function requestClose(IWebSocketConnection $user, $message){
-        $stream = $this->streams[$message->connection];
+        $stream = $this->getStream($user, $message->connection);
+        $this->logger->notice(sprintf("User %s closes connection %s to %s", $user->getId(), $stream->getId(), $stream->getAddress()));
         $stream->requestClose();
     }
 }
@@ -91,23 +120,22 @@ class DemoSslEchoHandler extends WebSocketUriHandler {
  * @author Chris
  *
  */
-class DemoSslSocketServer implements IWebSocketServerObserver {
+class DemoSslSocketServer extends \Devristo\Phpws\Server\WebSocketServerObserver {
 
     protected $debug = true;
     protected $server;
 
     public function __construct() {
         $logger = new \Zend\Log\Logger();
-        $logger->addWriter(new Zend\Log\Writer\Stream("php://output"));
-
+        $writer = new Zend\Log\Writer\Stream("php://output");
+        $writer->addFilter(new Zend\Log\Filter\Priority(\Zend\Log\Logger::NOTICE));
+        $logger->addWriter($writer);
         $this->logger = $logger;
 
         $this->server = new WebSocketServer("tcp://0.0.0.0:12345", $logger);
         $this->server->addObserver($this);
 
-        $this->server->addUriHandler("echo", new DemoSslEchoHandler($this->server->_server,$logger));
-
-//        $this->setupSSL();
+        $this->server->addUriHandler("proxy", new DemoSslEchoHandler($this->server->_server,$logger));
     }
 
     private function getPEMFilename() {
@@ -124,25 +152,6 @@ class DemoSslSocketServer implements IWebSocketServerObserver {
         stream_context_set_option($context, 'ssl', 'verify_peer', false);
 
         $this->server->setStreamContext($context);
-    }
-
-    public function onConnect(IWebSocketConnection $user) {
-        $this->logger->notice("[DEMO] {$user->getId()} connected");
-    }
-
-    public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
-        $this->logger->notice("[DEMO] {$user->getId()} says '{$msg->getData()}'");
-    }
-
-    public function onDisconnect(IWebSocketConnection $user) {
-        $this->logger->notice("[DEMO] {$user->getId()} disconnected");
-    }
-
-    public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
-        $this->logger->notice("[DEMO] Admin Message received!");
-
-        $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-        $user->sendFrame($frame);
     }
 
     public function run() {

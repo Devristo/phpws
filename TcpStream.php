@@ -14,13 +14,18 @@ class TcpStream implements ISocketStream{
     protected $websocket;
     protected $socket;
 
+    protected $id;
+
     protected $writeBuffer;
     protected $closing = false;
     protected $closed = false;
 
-    public function __construct(SocketServer $server, $address, IWebSocketConnection $connection){
+    public function __construct(SocketServer $server, $address, IWebSocketConnection $connection, \Zend\Log\LoggerInterface $logger){
+        $this->id = uniqid("tcp-$address-");
+
         $this->address = $address;
         $this->socketServer = $server;
+        $this->logger = $logger;
         $this->socket = stream_socket_client("tcp://$address", $error_number, $error, 5, STREAM_CLIENT_CONNECT);
         $server->attachStream($this);
 
@@ -31,11 +36,12 @@ class TcpStream implements ISocketStream{
     }
 
     public function getId(){
-        return $this->address;
+        return $this->id;
     }
 
     public function onData($data)
     {
+        $this->logger->notice(sprintf("Got %d bytes on %s from %s proxying to user %s", strlen($data), $this->getId(), $this->getAddress(), $this->websocket->getId()));
         $message =
             [
                 'connection'    => $this->getId(),
@@ -48,7 +54,8 @@ class TcpStream implements ISocketStream{
 
     public function close()
     {
-        fclose($this->getSocket());
+        $this->logger->debug(sprintf("Closing connection %s to %s", $this->getId(), $this->address));
+        @fclose($this->getSocket());
         $this->writeBuffer = '';
 
         $message =
@@ -101,11 +108,21 @@ class TcpStream implements ISocketStream{
 
     public function requestClose()
     {
-        $this->closing = true;
+        if($this->requestsWrite())
+            $this->closing = true;
+        else $this->close();
     }
 
     public function isClosing()
     {
         return $this->closing;
+    }
+
+    public function isClosed(){
+        return $this->closed;
+    }
+
+    public function getAddress(){
+        return $this->address;
     }
 }

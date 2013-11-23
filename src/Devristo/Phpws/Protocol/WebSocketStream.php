@@ -28,6 +28,8 @@ class WebSocketStream implements ISocketStream, LoggerAwareInterface
     private $_disconnecting = false;
     private $_immediateWrite = false;
 
+    private $_closed = false;
+
     /**
      *
      * Enter description here ...
@@ -138,6 +140,7 @@ class WebSocketStream implements ISocketStream, LoggerAwareInterface
     public function close()
     {
         fclose($this->_socket);
+        $this->_closed = true;
         foreach ($this->_observers as $observer) {
             $observer->onDisconnect($this);
         }
@@ -175,5 +178,11 @@ class WebSocketStream implements ISocketStream, LoggerAwareInterface
     public function setLogger(LoggerInterface $logger)
     {
         $this->logger = $logger;
+    }
+
+
+    public function isClosed()
+    {
+        return $this->_closed;
     }
 }

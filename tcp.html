@@ -8,14 +8,16 @@
 
 
 <script>
-    var webSocket = new function(){
+    var ProxyWebSocket = function(address){
         var self = this;
-        var promisses = {};
+        var promises = {};
         var transactionId = 0;
 
         var openPromise = $.Deferred();
 
-        this.socket = new WebSocket("ws://localhost:12345/echo");
+        this.address = address;
+
+        this.socket = new WebSocket(this.address);
 
         this.socket.addEventListener("open", function(){
             openPromise.resolveWith(self);
@@ -24,15 +26,15 @@
         this.socket.addEventListener("message", function(message){
             message = JSON.parse(message.data);
 
-            if ('tag' in message && message.tag in promisses){
-                promisses[message.tag].resolveWith(self, [message]);
+            if ('tag' in message && message.tag in promises){
+                promises[message.tag].resolveWith(self, [message]);
             }
         });
 
         this.getResponseTo = function(message){
             var promise = $.Deferred();
             transactionId = transactionId + 1;
-            promisses[transactionId] = promise;
+            promises[transactionId] = promise;
 
             message.tag = transactionId;
 
@@ -45,14 +47,27 @@
             return openPromise;
         };
 
+        this.close = function(){
+            this.socket.close();
+
+            return this;
+        };
+
         this.addEventListener = function(){
             this.socket.addEventListener.apply(this.socket, arguments);
-        }
+
+            return this;
+        };
 
         this.sendObject = function(message){
             this.socket.send(JSON.stringify(message));
-        }
+
+            return this;
+        };
     };
+
+    console.log("Connecting to phpws");
+    var webSocket = new ProxyWebSocket("ws://localhost:12345/proxy");
 
     var Connection = (function(webSocket){
         var connections = {};
@@ -69,6 +84,7 @@
         return function(address){
             var self = this;
             this.id = null;
+            this.address = address;
 
             var callbacks = {};
 
@@ -123,7 +139,7 @@
             };
 
             this.close = function(){
-                webSocket.send({
+                webSocket.sendObject({
                     'command': 'close',
                     'connection': self.id
                 });
@@ -133,17 +149,32 @@
 
     // When opened just ask the server to open a connection to google.com on port 80. When opened send a HTTP GET
     // request. Log any responses to console
-    webSocket.open().then(function(){
-        console.log("Opened WebSocket connection");
+    webSocket.addEventListener("close", function(){
+        console.log("WebSocket connection has been closed!")
+    }).open().then(function(){
+        console.log("Connected to phpws");
 
-        var connection = new Connection("google.com:80");
+        var connection = new Connection("www.google.com:80");
         connection.subscribe("data", function(message){
-            console.log(message.data);
-        }).connect().then(
-            function(){
-                this.send("GET / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n");
-            }
-        );
+            console.group("Got HTTP response");
+                console.log(message.data);
+            console.groupEnd();
+
+            console.log("Closing HTTP connection %s to %s", this.id, this.address);
+            this.close();
+        }).subscribe("connect", function(){
+            console.log("We have connected to " + this.address);
+        }).subscribe("close", function(){
+            console.log("Connection to " + this.address + " has been closed");
+            console.log("Closing WebSocket connection to phpws on ", webSocket.address);
+            webSocket.close();
+        }).connect().then(function(){
+            console.group("Sending GET request");
+                var request = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n";
+                console.log(request);
+                this.send(request);
+            console.groupEnd();
+        });
     });
 </script>
 

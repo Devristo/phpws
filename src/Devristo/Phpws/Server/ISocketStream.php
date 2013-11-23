@@ -17,4 +17,5 @@ interface ISocketStream {
     public function getSocket();
     public function acceptConnection();
     public function isServer();
+    public function isClosed();
 } 

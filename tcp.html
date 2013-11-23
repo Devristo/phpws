@@ -159,6 +159,9 @@
             console.group("Got HTTP response");
                 console.log(message.data);
             console.groupEnd();
+
+            console.log("Close TCP Proxy connection to " + this.address);
+            this.close();
         }).subscribe("connect", function(){
             console.log("We have connected to " + this.address);
         }).subscribe("close", function(){

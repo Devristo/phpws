@@ -96,55 +96,55 @@ class DemoSslEchoHandler extends WebSocketUriHandler
 
         try {
             $stream = new TcpStream($this->socketServer, $address, $this->logger);
+            $uriHandler = $this;
 
-            $stream->getEventManager()->attach("data", function (\Zend\EventManager\Event $event) use ($user) {
+            $stream->getEventManager()->attach("data", function (\Zend\EventManager\Event $event) use ($user, $uriHandler) {
                 $stream = $event->getTarget();
                 $data = $event->getParam('data');
 
-                $this->logger->notice(sprintf("Proxying %d bytes on %s from %s to user %s", strlen($data), $stream->getId(), $stream->getAddress(), $user->getId()));
-                $message =
-                    [
+                $uriHandler->logger->notice(sprintf("Proxying %d bytes on %s from %s to user %s", strlen($data), $stream->getId(), $stream->getAddress(), $user->getId()));
+                $message = array(
                         'connection' => $stream->getId(),
                         'event' => 'data',
                         'data' => $event->getParam('data')
-                    ];
+                );
 
                 $user->sendString(json_encode($message));
             });
 
-            $stream->getEventManager()->attach("close", function (\Zend\EventManager\Event $event) use ($user) {
+            $stream->getEventManager()->attach("close", function (\Zend\EventManager\Event $event) use ($user, $uriHandler) {
                 /**
                  * @var $stream TcpStream
                  */
                 $stream = $event->getTarget();
 
-                $this->logger->notice(sprintf("Connection %s of user %s to %s has been closed", $stream->getId(), $user->getId(), $stream->getAddress()));
+                $uriHandler->logger->notice(sprintf("Connection %s of user %s to %s has been closed", $stream->getId(), $user->getId(), $stream->getAddress()));
 
                 $message =
-                    [
+                    array(
                         'connection' => $stream->getId(),
                         'event' => 'close'
-                    ];
+                    );
 
                 $user->sendString(json_encode($message));
 
                 // Remove stream from the user's list
-                $this->removeStream($user, $stream);
+                $uriHandler->removeStream($user, $stream);
             });
 
             $this->streams[$user->getId()][$stream->getId()] = $stream;
 
-            $user->sendString(json_encode([
+            $user->sendString(json_encode(array(
                 'connection' => $stream->getId(),
                 'event' => 'connected',
                 'tag' => property_exists($message, 'tag') ? $message->tag : null
-            ]));
+            )));
         } catch (Exception $e) {
-            $user->sendString(json_encode([
+            $user->sendString(json_encode(array(
                 'event' => 'error',
                 'tag' => property_exists($message, 'tag') ? $message->tag : null,
                 'message' => $e->getMessage()
-            ]));
+            )));
         }
     }
 
@@ -164,17 +164,17 @@ class DemoSslEchoHandler extends WebSocketUriHandler
             $stream->requestClose();
             $this->removeStream($user, $stream);
 
-            $user->sendString(json_encode([
+            $user->sendString(json_encode(array(
                 'event' => 'close',
                 'connection' => $stream->getId(),
                 'tag' => property_exists($message, 'tag') ? $message->tag : null
-            ]));
+            )));
         } else {
-            $user->sendString(json_encode([
+            $user->sendString(json_encode(array(
                 'event' => 'error',
                 'tag' => property_exists($message, 'tag') ? $message->tag : null,
                 'message' => 'Connection was already closed'
-            ]));
+            )));
         }
     }
 }

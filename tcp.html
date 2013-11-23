@@ -154,12 +154,11 @@
     }).open().then(function(){
         console.log("Connected to phpws");
 
-        var connection = new Connection("www.u2start.com:80");
+        var connection = new Connection("www.google.com:80");
         connection.subscribe("data", function(message){
             console.group("Got HTTP response");
                 console.log(message.data);
             console.groupEnd();
-            this.close();
         }).subscribe("connect", function(){
             console.log("We have connected to " + this.address);
         }).subscribe("close", function(){
@@ -168,7 +167,7 @@
             webSocket.close();
         }).connect().then(function(){
             console.group("Sending GET request");
-                var request = "GET / HTTP/1.1\r\nHost: www.u2start.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n";
+                var request = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n";
                 console.log(request);
                 this.send(request);
             console.groupEnd();

@@ -27,7 +27,7 @@ class DemoSslEchoHandler extends WebSocketUriHandler
     /**
      * @var TcpStream[][]
      */
-    protected $streams;
+    protected $streams = array();
     protected $server;
 
     /**
@@ -48,7 +48,7 @@ class DemoSslEchoHandler extends WebSocketUriHandler
      */
     protected function getStreamsByUser(IWebSocketConnection $user)
     {
-        return $this->streams[$user->getId()];
+        return array_key_exists($user->getId(), $this->streams) ? $this->streams[$user->getId()] : [];
     }
 
     protected function removeStream(IWebSocketConnection $user, TcpStream $stream)
@@ -56,10 +56,13 @@ class DemoSslEchoHandler extends WebSocketUriHandler
         unset($this->streams[$user->getId()][$stream->getId()]);
     }
 
+    protected function addStream(IWebSocketConnection $user, TcpStream $stream){
+        $this->streams[$user->getId()][$stream->getId()] = $stream;
+    }
+
     public function __construct(\Devristo\Phpws\Server\SocketServer $server, $logger)
     {
         parent::__construct($logger);
-        $this->streams = new DefaultDict(array());
         $this->socketServer = $server;
     }
 
@@ -132,7 +135,7 @@ class DemoSslEchoHandler extends WebSocketUriHandler
                 $uriHandler->removeStream($user, $stream);
             });
 
-            $this->streams[$user->getId()][$stream->getId()] = $stream;
+            $this->addStream($user, $stream);
 
             $user->sendString(json_encode(array(
                 'connection' => $stream->getId(),

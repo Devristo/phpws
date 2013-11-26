@@ -56,6 +56,7 @@ class WebSocketServerClient extends Connection
             else
                 $this->establishConnection($data);
         } catch (Exception $e) {
+            $this->logger->err("Error while handling incoming data. Exception message is: ".$e->getMessage());
             $this->close();
         }
     }

@@ -21,10 +21,12 @@ stream_context_set_option($context, 'ssl', 'allow_self_signed', true);
 stream_context_set_option($context, 'ssl', 'verify_peer', false);
 $server->setStreamContext($context);
 
+// Sent a welcome message when a client connects
 $server->on("connect", function(WebSocketConnectionInterface $user){
     $user->sendString("Hey! I am the echo robot. I will repeat all your input!");
 });
 
+// Echo back any message the user sends
 $server->on("message", function(WebSocketConnectionInterface $user, WebSocketMessageInterface $message) use($logger){
     $logger->notice(sprintf("We have got '%s' from client %s", $message->getData(), $user->getId()));
     $user->sendString($message->getData());

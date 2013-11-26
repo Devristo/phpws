@@ -1,16 +1,9 @@
-Description
-===========
-
 WebSocket Server and Client library for PHP. Works with the latest HyBi specifications, as well the older Hixie #76 specification used by older Chrome versions and some Flash fallback solutions.
 
 This project was started to bring more interactive features to http://www.u2start.com/
 
-Downloads
----------
-The current version available for download is 1.0 RC1. This version has been thouroughly tested. However documentation is still minimal. 
-
 Features
----------
+============
 Server
   * Hixie #76 and Hybi #12 protocol versions
   * Flash client support (also serves XML policy file on the same port)
@@ -20,38 +13,32 @@ Server
 
 Client
   * Hybi / Hixie76 support.
+  * Event-based Async I/O
 
 
-Known Issues
--------------
-  * Lacks ORIGIN checking (can be implemented manually in onConnect using getHeaders(), just disconnect the user when you dont like the Origin header)
-  * No support for extension data from the HyBi specs.
+Getting started
+=================
+The easiest way to set up PHPWS is by using it as Composer dependency. Add the following to your composer.json
 
-Requirements
--------------
-*Server*
- * PHP 5.3
- * Open port for the server
- * PHP OpenSSL module to run a server over a encrypted connection
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/Devristo/phpws"
+        }
+    ],
+    "require": {
+        "devristo/phpws": "dev-react"
+    }
+}
+```
 
-* Composer dependencies *
-These will be installed automatically when using phpws as a composer package.
+And run ```php composer.phar install```
 
- * Reactphp
- * ZF2 Logger
-
-*Client*
- * PHP 5.3
- * Server that implements the HyBi (#8-#12) draft version
- * PHP OpenSSL module to connect using SSL (wss:// uris)
-
-Server Example
----------------
-```php
-require_once("vendor/autoload.php");            // Composer autoloader
-
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+To verify it is working create a time.php in your project root
+```
+require_once("vendor/autoload.php");
 use Devristo\Phpws\Server\WebSocketServer;
 
 $loop = \React\EventLoop\Factory::create();
@@ -64,14 +51,14 @@ $logger->addWriter($writer);
 // Create a WebSocket server using SSL
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 
-$server->on("connect", function(WebSocketConnectionInterface $user){
-    $user->sendString("Hey! I am the echo robot. I will repeat all your input!");
+$loop->addPeriodicTimer(0.5, function() use($server, $logger){
+    $time = new DateTime();
+    $string = $time->format("Y-m-d H:i:s");
+    $logger->notice("Broadcasting time to all clients: $string");
+    foreach($server->getConnections() as $client)
+        $client->sendString($string);
 });
 
-$server->on("message", function(WebSocketConnectionInterface $user, WebSocketMessageInterface $message) use($logger){
-    $logger->notice(sprintf("We have got '%s' from client %s", $message->getData(), $user->getId()));
-    $user->sendString($message->getData());
-});
 
 // Bind the server
 $server->bind();
@@ -80,8 +67,32 @@ $server->bind();
 $loop->run();
 ```
 
-Client Example
----------------------
+And a client time.html as follows
+```html
+<html>
+    <head>
+        <title>WebSocket TEST</title>
+    </head>
+    <body>
+        <h1>Server Time</h1>
+        <strong id="time"></strong>
+
+        <script>
+            var socket = new WebSocket("ws://localhost:12345/");
+            socket.onmessage = function(msg) {
+                document.getElementById("time").innerText = msg.data;
+            };
+        </script>
+    </body>
+</html>
+```
+Now run the time.php from the command line and open time.html in your browser. You should see the current time, broadcasted
+by phpws at regular intervals. If this works you might be interested in more complicated servers in the examples folder.
+
+Getting started with the Phpws Client
+=======================================
+The following is a client for the websocket server hosted at http://echo.websocket.org
+
 ```php
 require_once("vendor/autoload.php");                // Composer autoloader
 
@@ -106,3 +117,28 @@ $client->on("message", function($message) use ($client, $logger){
 $client->open();
 $loop->run();
 ```
+
+
+Known Issues
+==================
+  * Lacks ORIGIN checking (can be implemented manually in onConnect using getHeaders(), just disconnect the user when you dont like the Origin header)
+  * No support for extension data from the HyBi specs.
+
+Requirements
+=================
+*Server*
+ * PHP 5.3
+ * Open port for the server
+ * PHP OpenSSL module to run a server over a encrypted connection
+
+* Composer dependencies *
+These will be installed automatically when using phpws as a composer package.
+
+ * Reactphp
+ * ZF2 Logger
+
+*Client*
+ * PHP 5.3
+ * Server that implements the HyBi (#8-#12) draft version
+ * PHP OpenSSL module to connect using SSL (wss:// uris)
+

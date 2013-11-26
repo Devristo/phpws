@@ -47,7 +47,7 @@ class test extends PHPUnit_Framework_TestCase {
     }
 
     /**
-     * @expectedException WebSocketMessageNotFinalised
+     * @expectedException \Devristo\Phpws\Exceptions\WebSocketMessageNotFinalised
      */
     function test_incompleteTextMessage() {
         $bf1 = "\x01\x03\x48\x65\x6c";

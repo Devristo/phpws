@@ -2,7 +2,7 @@
 
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
 use Devristo\Phpws\Protocol\WebSocketConnectionFlash;

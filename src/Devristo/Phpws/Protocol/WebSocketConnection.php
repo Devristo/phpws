@@ -8,8 +8,8 @@
  */
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Framing\IWebSocketFrame;
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Evenement\EventEmitter;
 use React\Stream\WritableStreamInterface;
 use Zend\Log\LoggerAwareInterface;
@@ -53,7 +53,7 @@ abstract class WebSocketConnection extends EventEmitter implements WebSocketConn
         return $this->_id;
     }
 
-    public function sendFrame(IWebSocketFrame $frame)
+    public function sendFrame(WebSocketFrameInterface $frame)
     {
         if ($this->_socket->write($frame->encode()) === false)
             return false;
@@ -61,7 +61,7 @@ abstract class WebSocketConnection extends EventEmitter implements WebSocketConn
         return true;
     }
 
-    public function sendMessage(IWebSocketMessage $msg)
+    public function sendMessage(WebSocketMessageInterface $msg)
     {
         foreach ($msg->getFrames() as $frame) {
             if ($this->sendFrame($frame) === false)

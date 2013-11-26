@@ -2,13 +2,14 @@
 
 namespace Devristo\Phpws\Server\UriHandler;
 
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
+use Evenement\EventEmitter;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketUriHandler implements WebSocketUriHandlerInterface
+abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInterface
 {
 
     /**
@@ -34,6 +35,9 @@ abstract class WebSocketUriHandler implements WebSocketUriHandlerInterface
     {
         $this->users = new SplObjectStorage();
         $this->logger = $logger;
+
+        $this->on("message", array($this, 'onMessage'));
+        $this->on("disconnect", array($this, 'onDisconnect'));
     }
 
     public function addConnection(WebSocketConnectionInterface $user)
@@ -62,7 +66,7 @@ abstract class WebSocketUriHandler implements WebSocketUriHandlerInterface
 
     }
 
-    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg)
+    public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg)
     {
 
     }

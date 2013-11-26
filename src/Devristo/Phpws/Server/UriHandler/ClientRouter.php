@@ -8,7 +8,7 @@
 
 namespace Devristo\Phpws\Server\UriHandler;
 
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnection;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
@@ -41,15 +41,23 @@ class ClientRouter {
 
         $server->on('disconnect', function(WebSocketConnectionInterface $client) use($that, $logger, $membership){
             if($membership->contains($client)){
-                $membership[$client]->removeConnection($client);
+                $handler = $membership[$client];
+                $membership->detach($client);
+
+                $logger->notice("We have removed client {$client->getId()} from".get_class($handler));
+
+                $handler->removeConnection($client);
+                $handler->emit("disconnect", array("client" => $client));
+
             } else {
                 $logger->warn("Client {$client->getId()} not attached to any handler, so cannot remove it!");
             }
         });
 
-        $server->on("message", function(WebSocketConnectionInterface $client, IWebSocketMessage $message) use($that, $logger, $membership){
+        $server->on("message", function(WebSocketConnectionInterface $client, WebSocketMessageInterface $message) use($that, $logger, $membership){
             if($membership->contains($client)){
-                $membership[$client]->onMessage($client, $message);
+                $handler = $membership[$client];
+                $handler->emit("message", compact('client', 'message'));
             } else {
                 $logger->warn("Client {$client->getId()} not attached to any handler, so cannot forward the message!");
             }

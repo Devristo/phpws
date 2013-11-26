@@ -7,7 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Messaging;
-use Devristo\Phpws\Framing\IWebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 
@@ -18,7 +18,7 @@ use Devristo\Phpws\Framing\WebSocketOpcode;
  *
  * @author Chris
  */
-class WebSocketMessage76 implements IWebSocketMessage
+class WebSocketMessage76 implements WebSocketMessageInterface
 {
 
     protected $data = '';
@@ -63,11 +63,11 @@ class WebSocketMessage76 implements IWebSocketMessage
 
     /**
      * Creates a new WebSocketMessage76 from a IWebSocketFrame
-     * @param IWebSocketFrame $frame
+     * @param WebSocketFrameInterface $frame
      *
      * @return \Devristo\Phpws\Messaging\WebSocketMessage76 Message composed of the frame provided
      */
-    public static function fromFrame(IWebSocketFrame $frame)
+    public static function fromFrame(WebSocketFrameInterface $frame)
     {
         $o = new self();
         $o->frame = $frame;

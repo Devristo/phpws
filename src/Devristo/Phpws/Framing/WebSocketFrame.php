@@ -15,7 +15,7 @@ use Devristo\Phpws\Exceptions\WebSocketFrameSizeMismatch;
  * @author Chris
  *
  */
-class WebSocketFrame implements IWebSocketFrame
+class WebSocketFrame implements WebSocketFrameInterface
 {
 
     // First Byte

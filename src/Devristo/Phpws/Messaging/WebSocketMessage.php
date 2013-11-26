@@ -1,7 +1,7 @@
 <?php
 namespace Devristo\Phpws\Messaging;
 use Devristo\Phpws\Exceptions\WebSocketMessageNotFinalised;
-use Devristo\Phpws\Framing\IWebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Framing\WebSocketOpcode;
@@ -14,7 +14,7 @@ use Devristo\Phpws\Framing\WebSocketOpcode;
  * @author Chris
  *
  */
-class WebSocketMessage implements IWebSocketMessage
+class WebSocketMessage implements WebSocketMessageInterface
 {
 
     /**
@@ -54,7 +54,7 @@ class WebSocketMessage implements IWebSocketMessage
         return $data;
     }
 
-    public static function fromFrame(IWebSocketFrame $frame)
+    public static function fromFrame(WebSocketFrameInterface $frame)
     {
         assert($frame instanceof WebSocketFrame);
 

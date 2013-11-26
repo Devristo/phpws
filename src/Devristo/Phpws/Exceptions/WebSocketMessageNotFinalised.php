@@ -8,13 +8,13 @@
  */
 namespace Devristo\Phpws\Exceptions;
 
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Exception;
 
 class WebSocketMessageNotFinalised extends Exception
 {
 
-    public function __construct(IWebSocketMessage $msg)
+    public function __construct(WebSocketMessageInterface $msg)
     {
         parent::__construct("WebSocketMessage is not finalised!");
     }

@@ -1,10 +1,10 @@
 #!/php -q
 <?php
 
-require_once("vendor/autoload.php");
+require_once("../vendor/autoload.php");
 
 // Run from command prompt > php demo.php
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
@@ -39,7 +39,7 @@ class ProxyHandler extends WebSocketUriHandler
         unset($this->streams[$user->getId()]);
     }
 
-    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg)
+    public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg)
     {
         try {
             $message = json_decode($msg->getData());
@@ -172,6 +172,7 @@ class ProxyHandler extends WebSocketUriHandler
         $this->streams[$user->getId()][$id] = $stream;
     }
 }
+
 $loop = \React\EventLoop\Factory::create();
 $logger = new \Zend\Log\Logger();
 $writer = new Zend\Log\Writer\Stream("php://output");

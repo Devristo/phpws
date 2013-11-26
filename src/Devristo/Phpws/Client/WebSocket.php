@@ -3,10 +3,10 @@
 namespace Devristo\Phpws\Client;
 
 use Devristo\Phpws\Exceptions\WebSocketInvalidUrlScheme;
-use Devristo\Phpws\Framing\IWebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnection;
 use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
 use Devristo\Phpws\Protocol\WebSocketConnectionHybi;
@@ -179,12 +179,12 @@ class WebSocket extends EventEmitter
         $this->_connection->sendString($string);
     }
 
-    public function sendMessage(IWebSocketMessage $msg)
+    public function sendMessage(WebSocketMessageInterface $msg)
     {
         $this->_connection->sendMessage($msg);
     }
 
-    public function sendFrame(IWebSocketFrame $frame)
+    public function sendFrame(WebSocketFrameInterface $frame)
     {
         $this->_connection->sendFrame($frame);
     }

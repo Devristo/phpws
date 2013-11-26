@@ -7,7 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Messaging;
-use Devristo\Phpws\Framing\IWebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Exception;
 
@@ -17,7 +17,7 @@ use Exception;
  * @author Chris
  *
  */
-interface IWebSocketMessage
+interface WebSocketMessageInterface
 {
 
     /**
@@ -55,8 +55,8 @@ interface IWebSocketMessage
 
     /**
      * Create a message from it's first frame
-     * @param IWebSocketFrame $frame
+     * @param WebSocketFrameInterface $frame
      * @throws Exception
      */
-    public static function fromFrame(IWebSocketFrame $frame);
+    public static function fromFrame(WebSocketFrameInterface $frame);
 }

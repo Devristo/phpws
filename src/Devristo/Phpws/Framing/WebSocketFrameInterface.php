@@ -13,7 +13,7 @@ namespace Devristo\Phpws\Framing;
  *
  * @author Chris
  */
-interface IWebSocketFrame
+interface WebSocketFrameInterface
 {
 
     /**
@@ -45,7 +45,7 @@ interface IWebSocketFrame
      * @param int $type
      * @param string $data
      *
-     * @return \Devristo\Phpws\Framing\IWebSocketFrame
+     * @return \Devristo\Phpws\Framing\WebSocketFrameInterface
      */
     public static function create($type, $data = null);
 }

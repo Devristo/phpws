@@ -2,7 +2,7 @@
 namespace Devristo\Phpws\Framing;
 
 
-class WebSocketFrame76 implements IWebSocketFrame
+class WebSocketFrame76 implements WebSocketFrameInterface
 {
 
     public $payloadData = '';

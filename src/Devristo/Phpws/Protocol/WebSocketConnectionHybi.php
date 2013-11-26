@@ -8,7 +8,7 @@
  */
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Framing\IWebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessage;
@@ -71,7 +71,7 @@ class WebSocketConnectionHybi extends WebSocketConnection
         return $frames;
     }
 
-    public function sendFrame(IWebSocketFrame $frame)
+    public function sendFrame(WebSocketFrameInterface $frame)
     {
         /**
          * @var $hybiFrame WebSocketFrame

@@ -8,8 +8,8 @@
  */
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Framing\IWebSocketFrame;
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Framing\WebSocketFrameInterface;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 
 interface WebSocketConnectionInterface
 {
@@ -22,9 +22,9 @@ interface WebSocketConnectionInterface
 
     public function onData($data);
 
-    public function sendFrame(IWebSocketFrame $frame);
+    public function sendFrame(WebSocketFrameInterface $frame);
 
-    public function sendMessage(IWebSocketMessage $msg);
+    public function sendMessage(WebSocketMessageInterface $msg);
 
     public function sendString($msg);
 

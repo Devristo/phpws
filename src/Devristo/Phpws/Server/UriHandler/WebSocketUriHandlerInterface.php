@@ -8,20 +8,17 @@
  */
 namespace Devristo\Phpws\Server\UriHandler;
 
-use Devristo\Phpws\Messaging\IWebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
+use Evenement\EventEmitterInterface;
 
-interface WebSocketUriHandlerInterface
+interface WebSocketUriHandlerInterface extends EventEmitterInterface
 {
 
     public function addConnection(WebSocketConnectionInterface $user);
 
     public function removeConnection(WebSocketConnectionInterface $user);
-
-    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg);
-
-    public function setServer(WebSocketServer $server);
 
     /**
      * @return WebSocketConnectionInterface[]

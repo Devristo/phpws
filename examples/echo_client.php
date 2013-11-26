@@ -10,7 +10,6 @@ require_once(__DIR__ . "/../vendor/autoload.php");
 
 $loop = \React\EventLoop\Factory::create();
 
-
 $logger = new \Zend\Log\Logger();
 $writer = new Zend\Log\Writer\Stream("php://output");
 $logger->addWriter($writer);

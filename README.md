@@ -24,7 +24,6 @@ Client
 
 Known Issues
 -------------
-  * SSL support not well field tested.
   * Lacks ORIGIN checking (can be implemented manually in onConnect using getHeaders(), just disconnect the user when you dont like the Origin header)
   * No support for extension data from the HyBi specs.
 
@@ -35,6 +34,12 @@ Requirements
  * Open port for the server
  * PHP OpenSSL module to run a server over a encrypted connection
 
+* Composer dependencies *
+These will be installed automatically when using phpws as a composer package.
+
+ * Reactphp
+ * ZF2 Logger
+
 *Client*
  * PHP 5.3
  * Server that implements the HyBi (#8-#12) draft version
@@ -43,97 +48,61 @@ Requirements
 Server Example
 ---------------
 ```php
-	#!/php -q
-	<?php
+require_once("vendor/autoload.php");            // Composer autoloader
 
-	// Run from command prompt > php demo.php
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
+use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Server\WebSocketServer;
 
-	/**
-	 * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
-	 *
-	 * All this handler does is echoing the responds to the user
-	 * @author Chris
-	 *
-	 */
-	class DemoEchoHandler extends WebSocketUriHandler{
-		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			echo "[ECHO] {$msg->getData()}\n";
-			// Echo
-			$user->sendMessage($msg);
-		}
+$loop = \React\EventLoop\Factory::create();
 
-		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj){
-			echo "[DEMO] Admin TEST received!\n";
+// Create a logger which writes everything to the STDOUT
+$logger = new \Zend\Log\Logger();
+$writer = new Zend\Log\Writer\Stream("php://output");
+$logger->addWriter($writer);
 
-			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-			$user->sendFrame($frame);
-		}
-	}
+// Create a WebSocket server using SSL
+$server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 
-	/**
-	 * Demo socket server. Implements the basic eventlisteners and attaches a resource handler for /echo/ urls.
-	 *
-	 *
-	 * @author Chris
-	 *
-	 */
-	class DemoSocketServer implements IWebSocketServerObserver{
-		protected $debug = true;
-		protected $server;
+$server->on("connect", function(WebSocketConnectionInterface $user){
+    $user->sendString("Hey! I am the echo robot. I will repeat all your input!");
+});
 
-		public function __construct(){
-			$this->server = new WebSocketServer('tcp://0.0.0.0:12345', 'superdupersecretkey');
-			$this->server->addObserver($this);
+$server->on("message", function(WebSocketConnectionInterface $user, WebSocketMessageInterface $message) use($logger){
+    $logger->notice(sprintf("We have got '%s' from client %s", $message->getData(), $user->getId()));
+    $user->sendString($message->getData());
+});
 
-			$this->server->addUriHandler("echo", new DemoEchoHandler());
-		}
+// Bind the server
+$server->bind();
 
-		public function onConnect(IWebSocketConnection $user){
-			echo "[DEMO] {$user->getId()} connected\n";
-		}
-
-		public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			echo "[DEMO] {$user->getId()} says '{$msg->getData()}'\n";
-		}
-
-		public function onDisconnect(IWebSocketConnection $user){
-			echo "[DEMO] {$user->getId()} disconnected\n";
-		}
-
-		public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg){
-			echo "[DEMO] Admin Message received!\n";
-
-			$frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
-			$user->sendFrame($frame);
-		}
-
-		public function run(){
-			$this->server->run();
-		}
-	}
-
-	// Start server
-	$server = new DemoSocketServer();
-	$server->run();
+// Start the event loop
+$loop->run();
 ```
 
 Client Example
 ---------------------
 ```php
-      <?php
+require_once("vendor/autoload.php");                // Composer autoloader
 
-	$input = "Hello World!";
-	$msg = WebSocketMessage::create($input);
+$loop = \React\EventLoop\Factory::create();
 
-	$client = new WebSocket("ws://127.0.0.1:12345/echo/");
-	$client->open();
-	$client->sendMessage($msg);
+$logger = new \Zend\Log\Logger();
+$writer = new Zend\Log\Writer\Stream("php://output");
+$logger->addWriter($writer);
 
-	// Wait for an incoming message
-	$msg = $client->readMessage();
+$client = new \Devristo\Phpws\Client\WebSocket("ws://echo.websocket.org/?encoding=text", $loop, $logger);
+$client->on("connected", function($headers) use ($logger, $client){
+    $logger->notice("Connected!");
+    $client->send("Hello world!");
+});
 
-	$client->close();
+$client->on("message", function($message) use ($client, $logger){
+    $logger->notice("Got message: ".$message->getData());
+    $client->close();
+});
 
-	echo $msg->getData(); // Prints "Hello World!" when using the demo.php server
-       ?>
+
+$client->open();
+$loop->run();
 ```

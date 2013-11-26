@@ -6,6 +6,19 @@
 </head>
 <body>
 
+<h1>Tcp proxy</h1>
+<p>Check JS Console for details</p>
+
+<h2>Request</h2>
+<pre id="GetRequest">
+
+</pre>
+
+<h2>Response</h2>
+<pre id="GetResponse">
+
+</pre>
+
 
 <script>
     var ProxyWebSocket = function(address){
@@ -158,6 +171,7 @@
         connection.subscribe("data", function(message){
             console.group("Got HTTP response");
                 console.log(message.data);
+                document.getElementById("GetResponse").innerText += message.data;
             console.groupEnd();
 
             console.log("Close TCP Proxy connection to " + this.address);
@@ -172,6 +186,7 @@
             console.group("Sending GET request");
                 var request = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; nl; rv:1.8.0.3) Gecko/20060426 Firefox/1.5.0.3\r\nAccept: text/xml,text/html,text/plain,image/png,image/jpeg,image/gif\r\nAccept-Charset: ISO-8859-1,utf-8\r\n\r\n";
                 console.log(request);
+                document.getElementById("GetRequest").innerText = request;
                 this.send(request);
             console.groupEnd();
         });

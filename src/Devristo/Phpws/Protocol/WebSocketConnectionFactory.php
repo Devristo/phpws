@@ -12,13 +12,14 @@ use Devristo\Phpws\Protocol\WebSocketConnectionFlash;
 use Devristo\Phpws\Protocol\WebSocketConnectionHixie;
 use Devristo\Phpws\Protocol\WebSocketConnectionHybi;
 use Devristo\Phpws\Protocol\WebSocketConnectionRole;
-use Devristo\Phpws\Protocol\WebSocketStream;
+use Devristo\Phpws\Protocol\WebSocketServerClient;
+use React\Socket\ConnectionInterface;
 use Zend\Log\LoggerInterface;
 
 class WebSocketConnectionFactory
 {
 
-    public static function fromSocketData(WebSocketStream $socket, $data, LoggerInterface $logger)
+    public static function fromSocketData(ConnectionInterface $socket, $data, LoggerInterface $logger)
     {
         $headers = self::parseHeaders($data);
 

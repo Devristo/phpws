@@ -15,6 +15,7 @@
     },
     "require": {
         "zendframework/zend-log": "2.*",
-        "zendframework/zend-eventmanager": "2.2.5"
+        "react/socket": "v0.3.2",
+        "react/socket-client": "v0.3.2"
     }
 }

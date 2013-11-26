@@ -10,11 +10,12 @@ namespace Devristo\Phpws\Protocol;
 
 use Devristo\Phpws\Framing\IWebSocketFrame;
 use Devristo\Phpws\Messaging\IWebSocketMessage;
-use Devristo\Phpws\Protocol\WebSocketStream;
+use Evenement\EventEmitter;
+use React\Stream\WritableStreamInterface;
 use Zend\Log\LoggerAwareInterface;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketConnection implements IWebSocketConnection, LoggerAwareInterface
+abstract class WebSocketConnection extends EventEmitter implements WebSocketConnectionInterface, LoggerAwareInterface
 {
 
     protected $_headers = array();
@@ -26,27 +27,30 @@ abstract class WebSocketConnection implements IWebSocketConnection, LoggerAwareI
 
     /**
      *
-     * @var WebSocketStream
+     * @var WebSocketServerClient
      */
     protected $_socket = null;
     protected $_cookies = array();
     public $parameters = null;
     protected $_role = WebSocketConnectionRole::CLIENT;
 
-    public function __construct(WebSocketStream $socket, array $headers)
+    protected $_eventManger;
+
+    public function __construct(WritableStreamInterface $socket, array $headers)
     {
         $this->setHeaders($headers);
         $this->_socket = $socket;
+        $this->_id = uniqid("connection-");
     }
 
     public function getIp()
     {
-        return stream_socket_get_name($this->_socket->getSocket(), true);
+        return $this->_socket->getRemoteAddress();
     }
 
     public function getId()
     {
-        return (int)$this->_socket->getSocket();
+        return $this->_id;
     }
 
     public function sendFrame(IWebSocketFrame $frame)

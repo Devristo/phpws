@@ -8,7 +8,7 @@ require_once("vendor/autoload.php");
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\IWebSocketMessage;
-use Devristo\Phpws\Protocol\IWebSocketConnection;
+use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\IWebSocketServerObserver;
 use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
@@ -22,13 +22,13 @@ use Devristo\Phpws\Server\WebSocketServer;
  */
 class DemoSslEchoHandler extends WebSocketUriHandler {
 
-    public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
+    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg) {
         $this->logger->notice("[ECHO] {$msg->getData()}");
         // Echo
         $user->sendMessage($msg);
     }
 
-    public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $obj) {
+    public function onAdminMessage(WebSocketConnectionInterface $user, IWebSocketMessage $obj) {
         $this->logger->notice("[DEMO] Admin TEST received!");
 
         $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
@@ -49,16 +49,16 @@ class DemoSslSocketServer implements IWebSocketServerObserver {
     protected $debug = true;
     protected $server;
 
-    public function __construct() {
+    public function __construct($loop) {
         $logger = new \Zend\Log\Logger();
         $logger->addWriter(new Zend\Log\Writer\Stream("php://output"));
 
         $this->logger = $logger;
 
-        $this->server = new WebSocketServer("ssl://0.0.0.0:12345", $logger);
+        $this->server = new WebSocketServer("ssl://0.0.0.0:12345", $loop, $logger);
         $this->server->addObserver($this);
 
-        $this->server->addUriHandler("echo", new DemoSslEchoHandler($logger));
+        $this->server->addUriHandler("echo", new ProxyHandler($logger));
 
         $this->setupSSL();
     }
@@ -79,19 +79,19 @@ class DemoSslSocketServer implements IWebSocketServerObserver {
         $this->server->setStreamContext($context);
     }
 
-    public function onConnect(IWebSocketConnection $user) {
+    public function onConnect(WebSocketConnectionInterface $user) {
         $this->logger->notice("[DEMO] {$user->getId()} connected");
     }
 
-    public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
+    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg) {
         $this->logger->notice("[DEMO] {$user->getId()} says '{$msg->getData()}'");
     }
 
-    public function onDisconnect(IWebSocketConnection $user) {
+    public function onDisconnect(WebSocketConnectionInterface $user) {
         $this->logger->notice("[DEMO] {$user->getId()} disconnected");
     }
 
-    public function onAdminMessage(IWebSocketConnection $user, IWebSocketMessage $msg) {
+    public function onAdminMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg) {
         $this->logger->notice("[DEMO] Admin Message received!");
 
         $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
@@ -104,6 +104,9 @@ class DemoSslSocketServer implements IWebSocketServerObserver {
 
 }
 
+$loop = \React\EventLoop\Factory::create();
+
 // Start server
-$server = new DemoSslSocketServer();
+$server = new ProxyWebSocketServer($loop);
 $server->run();
+$loop->run();

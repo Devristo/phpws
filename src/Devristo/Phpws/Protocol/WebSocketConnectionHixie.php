@@ -7,14 +7,14 @@ use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Messaging\WebSocketMessage;
 use Devristo\Phpws\Messaging\WebSocketMessage76;
-use Devristo\Phpws\Protocol\WebSocketStream;
+use Devristo\Phpws\Protocol\WebSocketServerClient;
 
 class WebSocketConnectionHixie extends WebSocketConnection
 {
 
     private $_clientHandshake;
 
-    public function __construct(WebSocketStream $socket, array $headers, $clientHandshake)
+    public function __construct(WebSocketServerClient $socket, array $headers, $clientHandshake)
     {
         $this->_clientHandshake = $clientHandshake;
         parent::__construct($socket, $headers);
@@ -78,12 +78,12 @@ class WebSocketConnectionHixie extends WebSocketConnection
     }
 
 
-    public function readFrame($data)
+    public function onData($data)
     {
         $f = WebSocketFrame76::decode($data);
-        $m = WebSocketMessage76::fromFrame($f);
+        $message = WebSocketMessage76::fromFrame($f);
 
-        $this->_socket->onMessage($m);
+        $this->emit("message", array('message' => $message));
 
         return array($f);
     }
@@ -95,9 +95,9 @@ class WebSocketConnectionHixie extends WebSocketConnection
         return $this->sendMessage($m);
     }
 
-    public function disconnect()
+    public function close()
     {
-        $this->_socket->disconnect();
+        $this->_socket->close();
     }
 
 }

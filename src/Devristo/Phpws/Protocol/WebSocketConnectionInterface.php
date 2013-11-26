@@ -11,7 +11,7 @@ namespace Devristo\Phpws\Protocol;
 use Devristo\Phpws\Framing\IWebSocketFrame;
 use Devristo\Phpws\Messaging\IWebSocketMessage;
 
-interface IWebSocketConnection
+interface WebSocketConnectionInterface
 {
 
     public function getId();
@@ -20,7 +20,7 @@ interface IWebSocketConnection
 
     public function setRole($role);
 
-    public function readFrame($data);
+    public function onData($data);
 
     public function sendFrame(IWebSocketFrame $frame);
 
@@ -36,5 +36,5 @@ interface IWebSocketConnection
 
     public function getIp();
 
-    public function disconnect();
+    public function close();
 }

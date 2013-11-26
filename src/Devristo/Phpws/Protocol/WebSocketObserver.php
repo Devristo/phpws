@@ -9,16 +9,13 @@
 namespace Devristo\Phpws\Protocol;
 
 use Devristo\Phpws\Messaging\IWebSocketMessage;
-use Devristo\Phpws\Protocol\WebSocketStream;
+use Devristo\Phpws\Protocol\WebSocketServerClient;
 
 interface WebSocketObserver
 {
+    public function onDisconnect(WebSocketServerClient $s);
 
-    public function onDisconnect(WebSocketStream $s);
+    public function onConnectionEstablished(WebSocketServerClient $s);
 
-    public function onConnectionEstablished(WebSocketStream $s);
-
-    public function onMessage(IWebSocketConnection $s, IWebSocketMessage $msg);
-
-    public function onFlashXMLRequest(WebSocketConnectionFlash $connection);
+    public function onMessage(WebSocketConnectionInterface $s, IWebSocketMessage $msg);
 }

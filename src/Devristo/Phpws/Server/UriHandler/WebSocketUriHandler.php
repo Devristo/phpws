@@ -3,12 +3,12 @@
 namespace Devristo\Phpws\Server\UriHandler;
 
 use Devristo\Phpws\Messaging\IWebSocketMessage;
-use Devristo\Phpws\Protocol\IWebSocketConnection;
+use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketUriHandler implements IWebSocketUriHandler
+abstract class WebSocketUriHandler implements WebSocketUriHandlerInterface
 {
 
     /**
@@ -36,12 +36,12 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler
         $this->logger = $logger;
     }
 
-    public function addConnection(IWebSocketConnection $user)
+    public function addConnection(WebSocketConnectionInterface $user)
     {
         $this->users->attach($user);
     }
 
-    public function removeConnection(IWebSocketConnection $user)
+    public function removeConnection(WebSocketConnectionInterface $user)
     {
         $this->users->detach($user);
         $this->onDisconnect($user);
@@ -52,17 +52,17 @@ abstract class WebSocketUriHandler implements IWebSocketUriHandler
         $this->server = $server;
     }
 
-    public function send(IWebSocketConnection $client, $str)
+    public function send(WebSocketConnectionInterface $client, $str)
     {
         return $client->sendString($str);
     }
 
-    public function onDisconnect(IWebSocketConnection $user)
+    public function onDisconnect(WebSocketConnectionInterface $user)
     {
 
     }
 
-    public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg)
+    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg)
     {
 
     }

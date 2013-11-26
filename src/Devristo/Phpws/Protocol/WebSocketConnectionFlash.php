@@ -16,7 +16,8 @@ class WebSocketConnectionFlash extends WebSocketConnection
     public function __construct($socket, $data)
     {
         $this->_socket = $socket;
-        $this->_socket->onFlashXMLRequest($this);
+
+        $this->emit("flashXmlRequest");
     }
 
     public function sendString($msg)
@@ -24,9 +25,9 @@ class WebSocketConnectionFlash extends WebSocketConnection
         $this->_socket->write($msg);
     }
 
-    public function disconnect()
+    public function close()
     {
-        $this->_socket->disconnect();
+        $this->_socket->close();
     }
 
     public function sendHandshakeResponse()
@@ -34,7 +35,7 @@ class WebSocketConnectionFlash extends WebSocketConnection
         throw new Exception("Not supported!");
     }
 
-    public function readFrame($data)
+    public function onData($data)
     {
         throw new Exception("Not supported!");
     }

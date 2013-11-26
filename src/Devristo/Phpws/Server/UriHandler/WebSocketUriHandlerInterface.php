@@ -9,22 +9,22 @@
 namespace Devristo\Phpws\Server\UriHandler;
 
 use Devristo\Phpws\Messaging\IWebSocketMessage;
-use Devristo\Phpws\Protocol\IWebSocketConnection;
+use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 
-interface IWebSocketUriHandler
+interface WebSocketUriHandlerInterface
 {
 
-    public function addConnection(IWebSocketConnection $user);
+    public function addConnection(WebSocketConnectionInterface $user);
 
-    public function removeConnection(IWebSocketConnection $user);
+    public function removeConnection(WebSocketConnectionInterface $user);
 
-    public function onMessage(IWebSocketConnection $user, IWebSocketMessage $msg);
+    public function onMessage(WebSocketConnectionInterface $user, IWebSocketMessage $msg);
 
     public function setServer(WebSocketServer $server);
 
     /**
-     * @return IWebSocketConnection[]
+     * @return WebSocketConnectionInterface[]
      */
     public function getConnections();
 }

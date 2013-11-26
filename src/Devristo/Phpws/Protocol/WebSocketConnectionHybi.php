@@ -40,7 +40,7 @@ class WebSocketConnectionHybi extends WebSocketConnection
 
         $this->_socket->write($response);
 
-        $this->logger->debug("HYBI Response SENT!");
+        $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
     }
 
     private static function calcHybiResponse($challenge)
@@ -48,7 +48,7 @@ class WebSocketConnectionHybi extends WebSocketConnection
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
     }
 
-    public function readFrame($data)
+    public function onData($data)
     {
         $frames = array();
         while (!empty($data)) {
@@ -103,7 +103,7 @@ class WebSocketConnectionHybi extends WebSocketConnection
         }
 
         if ($this->_openMessage && $this->_openMessage->isFinalised()) {
-            $this->_socket->onMessage($this->_openMessage);
+            $this->emit("message", array('message' => $this->_openMessage));
             $this->_openMessage = null;
         }
     }
@@ -119,10 +119,12 @@ class WebSocketConnectionHybi extends WebSocketConnection
     {
         switch ($frame->getType()) {
             case WebSocketOpcode::CloseFrame :
+                $this->logger->notice("Got CLOSE frame");
+
                 $frame = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
                 $this->sendFrame($frame);
 
-                $this->_socket->disconnect();
+                $this->_socket->close();
                 break;
             case WebSocketOpcode::PingFrame :
                 $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
@@ -138,18 +140,18 @@ class WebSocketConnectionHybi extends WebSocketConnection
 
             return $this->sendMessage($m);
         } catch (Exception $e) {
-            $this->disconnect();
+            $this->close();
         }
 
         return false;
     }
 
-    public function disconnect()
+    public function close()
     {
         $f = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
         $this->sendFrame($f);
 
-        $this->_socket->disconnect();
+        $this->_socket->close();
     }
 
 }

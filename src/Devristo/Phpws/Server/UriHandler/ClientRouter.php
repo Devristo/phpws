@@ -9,7 +9,6 @@
 namespace Devristo\Phpws\Server\UriHandler;
 
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnection;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use Zend\Log\LoggerInterface;
@@ -67,10 +66,10 @@ class ClientRouter {
     }
 
     /**
-     * @param WebSocketConnection $client
+     * @param WebSocketConnectionInterface $client
      * @return null|WebSocketUriHandlerInterface
      */
-    public function matchConnection(WebSocketConnection $client){
+    public function matchConnection(WebSocketConnectionInterface $client){
         foreach($this->handlers as $key => $value ){
             if(preg_match($key,$client->getUriRequested()))
                 return $value;

@@ -21,7 +21,7 @@ interface WebSocketMessageInterface
 {
 
     /**
-     * Retreive an array of frames of which this message is composed
+     * Retrieve an array of frames of which this message is composed
      *
      * @return WebSocketFrame[]
      */
@@ -35,7 +35,7 @@ interface WebSocketMessageInterface
     public function setData($data);
 
     /**
-     * Retreive the body of the message
+     * Retrieve the body of the message
      * @return string
      */
     public function getData();

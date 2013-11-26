@@ -34,6 +34,7 @@ class WebSocket extends EventEmitter
      * @var WebSocketServerClient
      */
     protected $stream;
+    protected $socket;
 
 
     /**
@@ -133,12 +134,12 @@ class WebSocket extends EventEmitter
 
     public function open()
     {
-        $errno = $errstr = null;
+        $errorNumber = $errorString = null;
         $that = $this;
 
         $protocol = $this->scheme == 'ws' ? "tcp" : "ssl";
 
-        $this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errno, $errstr, $this->getTimeOut());
+        $this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errorNumber, $errorString, $this->getTimeOut());
         $stream = new Stream($this->socket, $this->loop);
 
         $stream->on('data', array($this, 'onData'));

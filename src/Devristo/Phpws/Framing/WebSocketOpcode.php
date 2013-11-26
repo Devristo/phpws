@@ -36,9 +36,9 @@ class WebSocketOpcode
      */
     public static function isControlFrame($type)
     {
-        $controlframes = array(self::CloseFrame, self::PingFrame, self::PongFrame);
+        $controlFrames = array(self::CloseFrame, self::PingFrame, self::PongFrame);
 
-        return array_search($type, $controlframes) !== false;
+        return array_search($type, $controlFrames) !== false;
     }
 
 }

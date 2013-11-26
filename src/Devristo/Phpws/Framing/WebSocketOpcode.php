@@ -38,7 +38,7 @@ class WebSocketOpcode
     {
         $controlFrames = array(self::CloseFrame, self::PingFrame, self::PongFrame);
 
-        return array_search($type, $controlFrames) !== false;
+        return in_array($type, $controlFrames);
     }
 
 }

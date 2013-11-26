@@ -22,11 +22,18 @@ use Devristo\Phpws\Server\WebSocketServer;
  */
 class DemoEchoHandler extends WebSocketUriHandler {
 
+    public function onConnect(WebSocketConnectionInterface $user){
+        foreach($this->getConnections() as $client){
+            $client->sendString("User {$user->getId()} joined the chat: ");
+        }
+    }
 
     public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg) {
-        $this->logger->notice("[ECHO] " . strlen($msg->getData()) . " bytes");
-        // Echo
-        $user->sendMessage($msg);
+        $this->logger->notice("Broadcasting " . strlen($msg->getData()) . " bytes");
+
+        foreach($this->getConnections() as $client){
+            $client->sendString("User {$user->getId()} said: ".$msg->getData());
+        }
     }
 }
 
@@ -40,7 +47,7 @@ $logger->addWriter($writer);
 // Create a WebSocket server and create a router which sends all user requesting /echo to the DemoEchoHandler above
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
-$router->addUriHandler('#^/echo$#i', new DemoEchoHandler($logger));
+$router->addUriHandler('#^/chat$#i', new DemoEchoHandler($logger));
 
 // Bind the server
 $server->bind();

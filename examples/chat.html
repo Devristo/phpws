@@ -23,7 +23,7 @@
             }
 
             function init() {
-                var host = "ws://localhost:12345/echo";
+                var host = "ws://localhost:12345/chat";
                 try {
                     socket = createSocket(host);
                     log('WebSocket - status ' + socket.readyState);
@@ -31,7 +31,7 @@
                         log("Welcome - status " + this.readyState);
                     };
                     socket.onmessage = function(msg) {
-                        log("Received (" + msg.data.length + " bytes): " + msg.data);
+                        log(msg.data);
                     };
                     socket.onclose = function(msg) {
                         log("Disconnected - status " + this.readyState);
@@ -48,7 +48,6 @@
 
                 try {
                     socket.send(msg);
-                    log('Sent (' + msg.length + " bytes): " + msg);
                 } catch (ex) {
                     log(ex);
                 }

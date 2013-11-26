@@ -137,6 +137,10 @@ class WebSocket implements WebSocketObserver
 
         return true;
     }
+    
+    public function getMessages() { //sfranzyshen
+        return count($this->_messages);
+    }
 
     public function getTimeOut()
     {

@@ -37,7 +37,7 @@ The easiest way to set up PHPWS is by using it as Composer dependency. Add the f
 And run ```php composer.phar install```
 
 To verify it is working create a time.php in your project root
-```
+```php
 require_once("vendor/autoload.php");
 use Devristo\Phpws\Server\WebSocketServer;
 

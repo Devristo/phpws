@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>WebSocket TEST</title>
+    </head>
+    <body>
+        <h1>Server Time</h1>
+        <strong id="time"></strong>
+
+        <script>
+            var socket = new WebSocket("ws://localhost:12345/");
+            socket.onmessage = function(msg) {
+                document.getElementById("time").innerText = msg.data;
+            };
+        </script>
+    </body>
+</html>

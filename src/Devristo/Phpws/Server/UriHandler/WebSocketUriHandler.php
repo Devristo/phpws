@@ -38,6 +38,7 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
 
         $this->on("message", array($this, 'onMessage'));
         $this->on("disconnect", array($this, 'onDisconnect'));
+        $this->on("connect", array($this, 'onConnect'));
     }
 
     public function addConnection(WebSocketConnectionInterface $user)
@@ -48,7 +49,6 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
     public function removeConnection(WebSocketConnectionInterface $user)
     {
         $this->users->detach($user);
-        $this->onDisconnect($user);
     }
 
     public function setServer(WebSocketServer $server)
@@ -63,6 +63,10 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
 
     public function onDisconnect(WebSocketConnectionInterface $user)
     {
+
+    }
+
+    public function onConnect(WebSocketConnectionInterface $user){
 
     }
 

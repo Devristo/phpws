@@ -32,7 +32,6 @@ class ProxyHandler extends WebSocketUriHandler
 
     public function onDisconnect(WebSocketConnectionInterface $user)
     {
-        $this->logger->notice(sprintf("User %s has been removed from proxy", $user->getId()));
         foreach ($this->getStreamsByUser($user) as $stream) {
             $stream->close();
         }
@@ -82,6 +81,7 @@ class ProxyHandler extends WebSocketUriHandler
                 )));
 
                 $stream->on("data", function ($data) use ($stream, $id, $user, $logger){
+                    $logger->notice("Forwarding ".strlen($data). " bytes from stream $id to {$user->getId()}");
                     $message = array(
                         'connection' => $id,
                         'event' => 'data',

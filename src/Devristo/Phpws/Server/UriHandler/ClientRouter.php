@@ -32,8 +32,9 @@ class ClientRouter {
             $handler = $that->matchConnection($client);
 
             if($handler){
-                $logger->notice("We have added client {$client->getId()} to ".get_class($handler));
+                $logger->notice("Added client {$client->getId()} to ".get_class($handler));
                 $membership->attach($client, $handler);
+                $handler->emit("connect", array("client" => $client));
                 $handler->addConnection($client);
             }else
                 $logger->err("Cannot route {$client->getId()} with request uri {$client->getUriRequested()}");
@@ -44,7 +45,7 @@ class ClientRouter {
                 $handler = $membership[$client];
                 $membership->detach($client);
 
-                $logger->notice("We have removed client {$client->getId()} from".get_class($handler));
+                $logger->notice("Removed client {$client->getId()} from".get_class($handler));
 
                 $handler->removeConnection($client);
                 $handler->emit("disconnect", array("client" => $client));

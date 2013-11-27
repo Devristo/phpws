@@ -14,7 +14,7 @@ use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessage;
 use Exception;
 
-class WebSocketConnectionHybi extends WebSocketConnection
+class WebSocketConnectionHybi extends WebSocketTransport
 {
 
     /**

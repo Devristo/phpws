@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rooms</title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+    <script>
+        var socket = new WebSocket("ws://localhost:12345/");
+        socket.onopen = function(){
+            socket.send(JSON.stringify({
+                tag: 12345,
+                data: 'hello world!'
+            }));
+        };
+        socket.onmessage = function(msg) {
+            console.log(JSON.parse(msg.data));
+        };
+
+
+    </script>
+
+</head>
+<body>
+
+
+</body>
+</html>

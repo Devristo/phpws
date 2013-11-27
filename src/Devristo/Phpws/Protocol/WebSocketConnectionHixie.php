@@ -9,7 +9,7 @@ use Devristo\Phpws\Messaging\WebSocketMessage;
 use Devristo\Phpws\Messaging\WebSocketMessage76;
 use Devristo\Phpws\Protocol\WebSocketServerClient;
 
-class WebSocketConnectionHixie extends WebSocketConnection
+class WebSocketConnectionHixie extends WebSocketTransport
 {
 
     private $_clientHandshake;

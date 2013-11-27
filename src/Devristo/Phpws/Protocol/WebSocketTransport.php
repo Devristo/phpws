@@ -15,7 +15,7 @@ use React\Stream\WritableStreamInterface;
 use Zend\Log\LoggerAwareInterface;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketConnection extends EventEmitter implements WebSocketConnectionInterface, LoggerAwareInterface
+abstract class WebSocketTransport extends EventEmitter implements TransportInterface, WebSocketConnectionInterface, LoggerAwareInterface
 {
 
     protected $_headers = array();
@@ -167,5 +167,10 @@ abstract class WebSocketConnection extends EventEmitter implements WebSocketConn
 
     public function setLogger(LoggerInterface $logger){
         $this->logger = $logger;
+    }
+
+    public function setCarrier(TransportInterface $carrierProtocol)
+    {
+
     }
 }

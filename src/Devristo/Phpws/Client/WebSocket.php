@@ -7,7 +7,7 @@ use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnection;
+use Devristo\Phpws\Protocol\WebSocketTransport;
 use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
 use Devristo\Phpws\Protocol\WebSocketConnectionHybi;
 use Devristo\Phpws\Protocol\WebSocketServerClient;
@@ -37,7 +37,7 @@ class WebSocket extends EventEmitter
 
 
     /**
-     * @var WebSocketConnection
+     * @var WebSocketTransport
      */
     protected $_connection = null;
 
@@ -155,20 +155,6 @@ class WebSocket extends EventEmitter
         return $this;
     }
 
-    public function onMessage($message){
-
-    }
-
-    public function getTimeOut()
-    {
-        return $this->_timeOut;
-    }
-
-    public function setTimeOut($seconds)
-    {
-        $this->_timeOut = $seconds;
-    }
-
     public function addHeader($key, $value)
     {
         $this->headers[$key . ":"] = $value;
@@ -209,5 +195,15 @@ class WebSocket extends EventEmitter
             if($closeTimer)
                 $loop->cancelTimer($closeTimer);
         });
+    }
+
+    public function getTimeOut()
+    {
+        return $this->_timeOut;
+    }
+
+    public function setTimeOut($seconds)
+    {
+        $this->_timeOut = $seconds;
     }
 }

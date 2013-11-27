@@ -17,7 +17,7 @@ use Exception;
  * @author Chris
  *
  */
-interface WebSocketMessageInterface
+interface WebSocketMessageInterface extends MessageInterface
 {
 
     /**

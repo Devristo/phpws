@@ -19,7 +19,12 @@ $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $server->bind();
 
 // Here we create a new protocol stack on top of WebSocketMessages
-$stack = new ProtocolStack($server, array(new JsonTransport($loop, $logger)));
+$stack = new ProtocolStack($server, array(
+    function() use ($loop, $logger){
+        return new JsonTransport($loop, $logger);
+    }
+));
+
 $stack->on("connect", function(JsonTransport $transport) use ($logger){
     $transport->whenResponseTo("hello world!", 0.1)->then(function(JsonMessage $result) use ($logger){
         $logger->notice(sprintf("Got '%s' in response to 'hello world!'", $result->getData()));

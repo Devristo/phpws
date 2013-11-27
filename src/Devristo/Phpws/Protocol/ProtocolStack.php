@@ -19,48 +19,82 @@ class ProtocolStack extends EventEmitter
 
     /**
      * @param WebSocketServer $server
-     * @param TransportInterface[] $stack
+     * @param TransportInterface[] $stackSpecs
      * @throws \InvalidArgumentException
      */
-    public function __construct(WebSocketServer $server, $stack)
+    public function __construct(WebSocketServer $server, $stackSpecs)
     {
-        $this->server = $server;
-        $this->stack = $stack;
-
-        if (count($stack) < 1)
+        $that = $this;
+        if (count($stackSpecs) < 1)
             throw new \InvalidArgumentException("Stack should be a non empty array");
 
-        $first = $stack[0];
-        $server->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
-            $first->setCarrier($interface);
-            $first->onData($message->getData());
-        });
+        $ws2last = array();
 
-        for ($i = 0; $i < count($stack) - 1; $i++) {
-            $carrier = $stack[$i];
-            $next = $stack[$i + 1];
+        $instantiator = function($spec, TransportInterface $carrier){
+            if(is_string($spec)){
+                $transport = new $spec();
+            } elseif(is_callable($spec)){
+                $transport = $spec();
+            }
 
-            $next->setCarrier($carrier);
+            /**
+             * @var $transport TransportInterface
+             */
 
-            $carrier->on("message", function (TransportInterface $interface, MessageInterface $message) use ($next) {
-                $next->onData($message->getData());
+            $transport->setCarrier($carrier);
+
+            return $transport;
+        };
+
+        $server->on("connect", function(WebSocketConnectionInterface $user) use($that, $stackSpecs, $server, &$ws2last, $instantiator){
+            $carrier = $user;
+            $first = null;
+
+            /**
+             * @var $stack TransportInterface[]
+             */
+            $stack = array();
+
+            // Instantiate transports
+            $i = 0;
+            do{
+                $transport = $instantiator($stackSpecs[$i], $carrier);
+                $carrier = $transport;
+                $stack[] = $transport;
+
+                $i++;
+            }while($i < count($stackSpecs));
+
+            $first = $stack[0];
+            $last = $stack[count($stack) - 1];
+
+            // Remember the last protocol on the stack for this websocket connection, used to trigger disconnect event
+            $ws2last[$user->getId()] = $last;
+
+            // Link the first in the stack directly to the WebSocket server
+            $server->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
+                $first->onData($message->getData());
             });
-        }
 
-        $last = $stack[count($stack) - 1];
-        $that = $this;
+            for($i=0; $i<count($stack)-1; $i++){
+                $stack[$i]->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
+                    $first->onData($message->getData());
+                });
+            }
 
-        $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that) {
-            $that->emit("message", array($interface, $message));
-        });
+            // When the last protocol produces a message, emit it on our ProtocolStack
+            $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that) {
+                $that->emit("message", array($interface, $message));
+            });
 
-        $server->on("connect", function(WebSocketConnectionInterface $user) use($that, $first, $last){
-            $first->setCarrier($user);
             $that->emit("connect", array($last));
         });
 
-        $server->on("disconnect", function(WebSocketConnectionInterface $user) use($that, $last){
-            $that->emit("disconnect", array($last));
+        $server->on("disconnect", function(WebSocketConnectionInterface $user) use($that, &$ws2last){
+            $lastProtocolOnStack = array_key_exists($user->getId(), $ws2last) ? $ws2last[$user->getId()] : null;
+
+            if($lastProtocolOnStack)
+                $that->emit("disconnect", array($lastProtocolOnStack));
         });
     }
 } 

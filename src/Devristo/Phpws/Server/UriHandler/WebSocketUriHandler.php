@@ -65,8 +65,6 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
 
     }
 
-    //abstract public function onMessage(WebSocketUser $user, IWebSocketMessage $msg);
-
     public function getConnections()
     {
         return $this->users;

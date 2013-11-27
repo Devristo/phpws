@@ -13,7 +13,7 @@ use Evenement\EventEmitterInterface;
 
 interface TransportInterface extends EventEmitterInterface{
     public function getId();
-    public function onData($string);
+    public function onData($data);
     public function sendString($string);
     public function setCarrier(TransportInterface $carrierProtocol);
 } 

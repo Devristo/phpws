@@ -137,8 +137,12 @@ class WebSocketServer extends EventEmitter
 
             $client->on("close", function () use ($that, $client, $logger) {
                 try{
-                    $that->getConnections()->detach($client->getConnection());
-                    $that->emit("disconnect", array("client" => $client->getConnection()));
+                    $connection = $client->getConnection();
+
+                    if($connection){
+                        $that->getConnections()->detach($connection);
+                        $that->emit("disconnect", array("client" => $connection));
+                    }
                 }catch (Exception $e) {
                     $logger->err("[on_message] Error occurred while running a callback");
                 }

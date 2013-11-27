@@ -20,14 +20,25 @@ use Devristo\Phpws\Server\WebSocketServer;
  * @author Chris
  *
  */
-class DemoEchoHandler extends WebSocketUriHandler {
+class ChatHandler extends WebSocketUriHandler {
 
+    /**
+     * Notify everyone when a user has joined the chat
+     *
+     * @param WebSocketConnectionInterface $user
+     */
     public function onConnect(WebSocketConnectionInterface $user){
         foreach($this->getConnections() as $client){
             $client->sendString("User {$user->getId()} joined the chat: ");
         }
     }
 
+    /**
+     * Broadcast messages sent by a user to everyone in the room
+     *
+     * @param WebSocketConnectionInterface $user
+     * @param WebSocketMessageInterface $msg
+     */
     public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg) {
         $this->logger->notice("Broadcasting " . strlen($msg->getData()) . " bytes");
 
@@ -47,7 +58,7 @@ $logger->addWriter($writer);
 // Create a WebSocket server and create a router which sends all user requesting /echo to the DemoEchoHandler above
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
-$router->addUriHandler('#^/chat$#i', new DemoEchoHandler($logger));
+$router->addUriHandler('#^/chat$#i', new ChatHandler($logger));
 
 // Bind the server
 $server->bind();

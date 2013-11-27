@@ -51,16 +51,6 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
         $this->users->detach($user);
     }
 
-    public function setServer(WebSocketServer $server)
-    {
-        $this->server = $server;
-    }
-
-    public function send(WebSocketConnectionInterface $client, $str)
-    {
-        return $client->sendString($str);
-    }
-
     public function onDisconnect(WebSocketConnectionInterface $user)
     {
 

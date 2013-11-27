@@ -1,6 +1,7 @@
 <?php
 /**
- * Created by PhpStorm.
+ * Connect to the echo.websocket.org server and check whether our message is echoed back
+ *
  * User: Chris
  * Date: 30-9-13
  * Time: 21:05

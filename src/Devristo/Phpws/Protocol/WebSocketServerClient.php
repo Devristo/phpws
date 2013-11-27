@@ -2,22 +2,16 @@
 
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
-use Devristo\Phpws\Protocol\WebSocketConnectionFlash;
-use Devristo\Phpws\Server\ISocketStream;
-use Devristo\Phpws\Server\SocketStream;
-use Devristo\Phpws\Server\WebSocketStream;
 use Exception;
 use React\EventLoop\LoopInterface;
 use React\Socket\Connection;
-use Zend\EventManager\Event;
-use Zend\Log\LoggerAwareInterface;
 use Zend\Log\LoggerInterface;
 
 class WebSocketServerClient extends Connection
 {
+    /**
+     * @var LoggerInterface
+     */
     protected $logger;
 
     /**
@@ -56,6 +50,7 @@ class WebSocketServerClient extends Connection
             else
                 $this->establishConnection($data);
         } catch (Exception $e) {
+            $this->logger->err("Error while handling incoming data. Exception message is: ".$e->getMessage());
             $this->close();
         }
     }

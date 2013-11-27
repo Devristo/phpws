@@ -10,20 +10,27 @@ use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
 
 /**
- * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
+ * This URI handler will allow clients to open TCP connections through the outside world. Phpws is then acting as proxy.
  *
- * All this handler does is echoing the responds to the user
  * @author Chris
  *
  */
 class ProxyHandler extends WebSocketUriHandler
 {
     /**
+     * A multi-dimensional dictionary. First key is user id and second key is the id of the TCP stream. The value is the
+     * TCP stream itself
+     *
      * @var \React\Stream\Stream[][]
      */
     protected $streams = array();
     protected $server;
 
+    /**
+     * @param \React\EventLoop\LoopInterface $loop The React Loop, it is used to listen to events on newly created TCP
+     * streams
+     * @param $logger
+     */
     public function __construct(\React\EventLoop\LoopInterface $loop, $logger)
     {
         parent::__construct($logger);
@@ -38,6 +45,12 @@ class ProxyHandler extends WebSocketUriHandler
         unset($this->streams[$user->getId()]);
     }
 
+    /**
+     * Entry point for all messages received from clients in this proxy 'room'
+     *
+     * @param WebSocketConnectionInterface $user
+     * @param WebSocketMessageInterface $msg
+     */
     public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg)
     {
         try {
@@ -55,6 +68,18 @@ class ProxyHandler extends WebSocketUriHandler
         }
     }
 
+    /**
+     * Handler called when a CONNECT message is sent by a client
+     *
+     * A React SocketClient will be created, Google DNS is used to resolve host names. When the connection is made
+     * several event listeners are attached. When data is received on the stream, it is forwarded to the client requesting
+     * the proxied TCP connection
+     *
+     * Other events forwarded are connect and close
+     *
+     * @param WebSocketConnectionInterface $user
+     * @param $message
+     */
     protected function requestConnect(WebSocketConnectionInterface $user, $message)
     {
         $address = $message->address;
@@ -74,12 +99,14 @@ class ProxyHandler extends WebSocketUriHandler
                 $id = uniqid("stream-$address-");
                 $that->addStream($user, $id, $stream);
 
+                // Notify the user when the connection has been made
                 $user->sendString(json_encode(array(
                     'connection' => $id,
                     'event' => 'connected',
                     'tag' => property_exists($message, 'tag') ? $message->tag : null
                 )));
 
+                // Forward data back to the user
                 $stream->on("data", function ($data) use ($stream, $id, $user, $logger){
                     $logger->notice("Forwarding ".strlen($data). " bytes from stream $id to {$user->getId()}");
                     $message = array(
@@ -91,6 +118,7 @@ class ProxyHandler extends WebSocketUriHandler
                     $user->sendString(json_encode($message));
                 });
 
+                // When the stream closes, notify the user
                 $stream->on("close", function() use($user, $id, $logger, $address){
                     $logger->notice(sprintf("Connection %s of user %s to %s has been closed", $id, $user->getId(), $address));
 
@@ -112,13 +140,28 @@ class ProxyHandler extends WebSocketUriHandler
         }
     }
 
+    /**
+     * Forward data send by the user over the specified TCP stream
+     *
+     * @param WebSocketConnectionInterface $user
+     * @param $message
+     */
     protected function requestWrite(WebSocketConnectionInterface $user, $message)
     {
         $stream = $this->getStream($user, $message->connection);
-        $this->logger->notice(sprintf("User %s writes %d bytes to connection %s", $user->getId(), strlen($message->data), $message->connection));
-        $stream->write($message->data);
+
+        if($stream){
+            $this->logger->notice(sprintf("User %s writes %d bytes to connection %s", $user->getId(), strlen($message->data), $message->connection));
+            $stream->write($message->data);
+        }
     }
 
+    /**
+     * Close the stream specified by the user
+     *
+     * @param WebSocketConnectionInterface $user
+     * @param $message
+     */
     protected function requestClose(WebSocketConnectionInterface $user, $message)
     {
         $stream = $this->getStream($user, $message->connection);

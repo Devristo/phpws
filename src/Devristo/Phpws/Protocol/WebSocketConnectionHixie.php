@@ -3,18 +3,16 @@
 namespace Devristo\Phpws\Protocol;
 
 use Devristo\Phpws\Exceptions\WebSocketInvalidKeyException;
-use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketFrame76;
-use Devristo\Phpws\Messaging\WebSocketMessage;
 use Devristo\Phpws\Messaging\WebSocketMessage76;
-use Devristo\Phpws\Protocol\WebSocketServerClient;
+use React\Stream\WritableStreamInterface;
 
 class WebSocketConnectionHixie extends WebSocketTransport
 {
 
     private $_clientHandshake;
 
-    public function __construct(WebSocketServerClient $socket, array $headers, $clientHandshake)
+    public function __construct(WritableStreamInterface $socket, array $headers, $clientHandshake)
     {
         $this->_clientHandshake = $clientHandshake;
         parent::__construct($socket, $headers);

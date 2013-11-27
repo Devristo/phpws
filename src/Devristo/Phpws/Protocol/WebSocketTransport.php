@@ -147,10 +147,10 @@ abstract class WebSocketTransport extends EventEmitter implements TransportInter
 
         $q = substr($url, strpos($url, "?") + 1);
 
-        $kvpairs = explode("&", $q);
+        $keyValuePairs = explode("&", $q);
         $this->parameters = array();
 
-        foreach ($kvpairs as $kv) {
+        foreach ($keyValuePairs as $kv) {
             if (strpos($kv, "=") == -1)
                 continue;
 

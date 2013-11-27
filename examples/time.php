@@ -13,6 +13,7 @@ $logger->addWriter($writer);
 // Create a WebSocket server using SSL
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 
+// Each 0.5 seconds sent the time to all connected clients
 $loop->addPeriodicTimer(0.5, function() use($server, $logger){
     $time = new DateTime();
     $string = $time->format("Y-m-d H:i:s");

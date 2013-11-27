@@ -2,13 +2,11 @@
 
 namespace Devristo\Phpws\Server;
 
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
-use Devristo\Phpws\Protocol\WebSocketObserver;
 use Devristo\Phpws\Protocol\WebSocketServerClient;
-use Devristo\Phpws\Server\UriHandler\WebSocketUriHandlerInterface;
 use Evenement\EventEmitter;
 use Exception;
+use React\EventLoop\LoopInterface;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
 
@@ -60,7 +58,7 @@ class WebSocketServer extends EventEmitter
      * @param \React\EventLoop\LoopInterface $loop
      * @param null|\Zend\Log\LoggerInterface $logger
      */
-    public function __construct($url, \React\EventLoop\LoopInterface $loop, LoggerInterface $logger)
+    public function __construct($url, LoopInterface $loop, LoggerInterface $logger)
     {
         $this->_url = $url;
 

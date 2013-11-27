@@ -8,9 +8,7 @@
  */
 namespace Devristo\Phpws\Server\UriHandler;
 
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
-use Devristo\Phpws\Server\WebSocketServer;
 use Evenement\EventEmitterInterface;
 
 interface WebSocketUriHandlerInterface extends EventEmitterInterface

@@ -7,13 +7,17 @@
     <script>
         var socket = new WebSocket("ws://localhost:12345/");
         socket.onopen = function(){
-            socket.send(JSON.stringify({
-                tag: 12345,
-                data: 'hello world!'
-            }));
+
         };
         socket.onmessage = function(msg) {
-            console.log(JSON.parse(msg.data));
+            var jsonMessage = JSON.parse(msg.data);
+
+            var reply = {
+                tag: jsonMessage.tag,
+                data: 'hello to you too!'
+            };
+
+            socket.send(JSON.stringify(reply));
         };
 
 

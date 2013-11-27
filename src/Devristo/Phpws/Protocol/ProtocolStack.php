@@ -49,8 +49,18 @@ class ProtocolStack extends EventEmitter
 
         $last = $stack[count($stack) - 1];
         $that = $this;
+
         $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that) {
             $that->emit("message", array($interface, $message));
+        });
+
+        $server->on("connect", function(WebSocketConnectionInterface $user) use($that, $first, $last){
+            $first->setCarrier($user);
+            $that->emit("connect", array($last));
+        });
+
+        $server->on("disconnect", function(WebSocketConnectionInterface $user) use($that, $last){
+            $that->emit("disconnect", array($last));
         });
     }
 } 

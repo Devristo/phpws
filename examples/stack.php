@@ -18,13 +18,14 @@ $logger->addWriter($writer);
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $server->bind();
 
-
 // Here we create a new protocol stack on top of WebSocketMessages
-$stack = new ProtocolStack($server, array(new JsonTransport()));
-$stack->on("message", function(JsonTransport $transport, JsonMessage $message) use ($logger){
-    $logger->notice(sprintf("Got message from %s: %s", $transport->getId(), $message->toJson()));
-    $transport->replyTo($message, "hello");
+$stack = new ProtocolStack($server, array(new JsonTransport($loop, $logger)));
+$stack->on("connect", function(JsonTransport $transport) use ($logger){
+    $transport->whenResponseTo("hello world!", 0.1)->then(function(JsonMessage $result) use ($logger){
+        $logger->notice(sprintf("Got '%s' in response to 'hello world!'", $result->getData()));
+    });
 });
+
 
 // Start the event loop
 $loop->run();

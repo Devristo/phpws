@@ -30,19 +30,13 @@ class ProtocolStack extends EventEmitter
 
         $ws2last = array();
 
+        // A specification can be either a fully qualified class name or a lambda expression: TransportInterface -> TransportInterface
         $instantiator = function($spec, TransportInterface $carrier){
             if(is_string($spec)){
-                $transport = new $spec();
+                $transport = new $spec($carrier);
             } elseif(is_callable($spec)){
-                $transport = $spec();
+                $transport = $spec($carrier);
             }
-
-            /**
-             * @var $transport TransportInterface
-             */
-
-            $transport->setCarrier($carrier);
-
             return $transport;
         };
 

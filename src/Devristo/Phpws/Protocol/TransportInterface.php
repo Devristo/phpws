@@ -15,5 +15,4 @@ interface TransportInterface extends EventEmitterInterface{
     public function getId();
     public function onData($data);
     public function sendString($string);
-    public function setCarrier(TransportInterface $carrierProtocol);
 } 

@@ -168,9 +168,4 @@ abstract class WebSocketTransport extends EventEmitter implements TransportInter
     public function setLogger(LoggerInterface $logger){
         $this->logger = $logger;
     }
-
-    public function setCarrier(TransportInterface $carrierProtocol)
-    {
-
-    }
 }

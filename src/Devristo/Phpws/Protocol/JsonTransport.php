@@ -27,10 +27,11 @@ class JsonTransport extends EventEmitter implements TransportInterface{
     protected $deferred = array();
     protected $timers = array();
 
-    public function __construct(LoopInterface $loop, LoggerInterface $logger){
+    public function __construct(TransportInterface $carrierProtocol, LoopInterface $loop, LoggerInterface $logger){
         $that = $this;
         $this->logger = $logger;
         $this->loop = $loop;
+        $this->carrierProtocol = $carrierProtocol;
     }
 
     public function replyTo(JsonMessage $message, $data){
@@ -67,10 +68,6 @@ class JsonTransport extends EventEmitter implements TransportInterface{
         return $deferred->promise();
     }
 
-    public function setCarrier(TransportInterface $carrierProtocol)
-    {
-        $this->carrierProtocol = $carrierProtocol;
-    }
 
     public function onData($string)
     {

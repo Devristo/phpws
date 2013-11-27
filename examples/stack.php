@@ -6,6 +6,7 @@ require_once("../vendor/autoload.php");
 use Devristo\Phpws\Messaging\JsonMessage;
 use Devristo\Phpws\Protocol\JsonTransport;
 use Devristo\Phpws\Protocol\ProtocolStack;
+use Devristo\Phpws\Protocol\TransportInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 
 $loop = \React\EventLoop\Factory::create();
@@ -20,8 +21,8 @@ $server->bind();
 
 // Here we create a new protocol stack on top of WebSocketMessages
 $stack = new ProtocolStack($server, array(
-    function() use ($loop, $logger){
-        return new JsonTransport($loop, $logger);
+    function(TransportInterface $carrier) use ($loop, $logger){
+        return new JsonTransport($carrier, $loop, $logger);
     }
 ));
 

@@ -52,7 +52,7 @@ class JsonTransport extends EventEmitter implements TransportInterface{
         $message->setData($data);
 
         $this->carrierProtocol->sendString($message->toJson());
-        $this->logger->debug(sprintf("Awaiting response from %s to '%s' with %s", $this->getId(), $data, $timeout ? "timeout $timeout" : 'no timeout' ));
+        $this->logger->debug(sprintf("Awaiting response to '%s' with %s",  $data, $timeout ? "timeout $timeout" : 'no timeout' ));
 
         if($timeout){
             $list = &$this->deferred;

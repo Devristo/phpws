@@ -3,29 +3,42 @@
 <head>
     <title>Rooms</title>
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-
-    <script>
-        var socket = new WebSocket("ws://localhost:12345/");
-        socket.onopen = function(){
-
-        };
-        socket.onmessage = function(msg) {
-            var jsonMessage = JSON.parse(msg.data);
-
-            var reply = {
-                tag: jsonMessage.tag,
-                data: 'hello to you too!'
-            };
-
-            socket.send(JSON.stringify(reply));
-        };
-
-
-    </script>
-
 </head>
 <body>
 
+<h1>JsonTransport</h1>
+<pre id="log"></pre>
 
+<script>
+    var log = document.getElementById("log");
+    var socket = new WebSocket("ws://localhost:12345/");
+    socket.onopen = function(){
+        log.innerText += "Connected\n";
+    };
+    socket.onclose = function(){
+        log.innerText += "Closed\n";
+    };
+    socket.onmessage = function(msg) {
+        var jsonMessage = JSON.parse(msg.data);
+
+
+        log.innerText += "Got message: " + msg.data + "\n";
+
+
+        var reply = {
+            tag: jsonMessage.tag,
+            data: 'hello to you too!'
+        };
+
+        var json = JSON.stringify(reply);
+
+        log.innerText += "Replying with message: " + json + "\n";
+
+        socket.send(json);
+        socket.close();
+    };
+
+
+</script>
 </body>
 </html>

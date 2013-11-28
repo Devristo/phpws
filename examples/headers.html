@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+</head>
+<body>
+
+<h1>PHPWS handshake response</h1>
+<pre id="phpwsResponse">
+
+</pre>
+
+<script>
+    var socket = new WebSocket("ws://localhost:12345/");
+    socket.onmessage = function(msg) {
+        document.getElementById("phpwsResponse").innerText = msg.data;
+    };
+</script>
+</body>
+</html>

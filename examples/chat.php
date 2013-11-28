@@ -8,7 +8,7 @@ require_once("../vendor/autoload.php");
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\IWebSocketServerObserver;
 use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
@@ -25,9 +25,9 @@ class ChatHandler extends WebSocketUriHandler {
     /**
      * Notify everyone when a user has joined the chat
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      */
-    public function onConnect(WebSocketConnectionInterface $user){
+    public function onConnect(WebSocketTransportInterface $user){
         foreach($this->getConnections() as $client){
             $client->sendString("User {$user->getId()} joined the chat: ");
         }
@@ -36,10 +36,10 @@ class ChatHandler extends WebSocketUriHandler {
     /**
      * Broadcast messages sent by a user to everyone in the room
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param WebSocketMessageInterface $msg
      */
-    public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg) {
+    public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg) {
         $this->logger->notice("Broadcasting " . strlen($msg->getData()) . " bytes");
 
         foreach($this->getConnections() as $client){

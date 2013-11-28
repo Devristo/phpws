@@ -10,7 +10,7 @@ namespace Devristo\Phpws\Server\UriHandler;
 
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketTransport;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use Zend\Log\LoggerInterface;
 
@@ -28,7 +28,7 @@ class ClientRouter {
         $membership = $this->membership;
 
         $that = $this;
-        $server->on("connect", function(WebSocketConnectionInterface $client) use ($that, $logger, $membership){
+        $server->on("connect", function(WebSocketTransportInterface $client) use ($that, $logger, $membership){
             $handler = $that->matchConnection($client);
 
             if($handler){
@@ -40,7 +40,7 @@ class ClientRouter {
                 $logger->err("Cannot route {$client->getId()} with request uri {$client->getUriRequested()}");
         });
 
-        $server->on('disconnect', function(WebSocketConnectionInterface $client) use($that, $logger, $membership){
+        $server->on('disconnect', function(WebSocketTransportInterface $client) use($that, $logger, $membership){
             if($membership->contains($client)){
                 $handler = $membership[$client];
                 $membership->detach($client);
@@ -55,7 +55,7 @@ class ClientRouter {
             }
         });
 
-        $server->on("message", function(WebSocketConnectionInterface $client, WebSocketMessageInterface $message) use($that, $logger, $membership){
+        $server->on("message", function(WebSocketTransportInterface $client, WebSocketMessageInterface $message) use($that, $logger, $membership){
             if($membership->contains($client)){
                 $handler = $membership[$client];
                 $handler->emit("message", compact('client', 'message'));
@@ -72,7 +72,7 @@ class ClientRouter {
      */
     public function matchConnection(WebSocketTransport $client){
         foreach($this->handlers as $key => $value ){
-            if(preg_match($key,$client->getUriRequested()))
+            if(preg_match($key,$client->getRequest()->getUriString()))
                 return $value;
         }
 

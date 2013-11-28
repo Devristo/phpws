@@ -8,18 +8,18 @@
  */
 namespace Devristo\Phpws\Server\UriHandler;
 
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Evenement\EventEmitterInterface;
 
 interface WebSocketUriHandlerInterface extends EventEmitterInterface
 {
 
-    public function addConnection(WebSocketConnectionInterface $user);
+    public function addConnection(WebSocketTransportInterface $user);
 
-    public function removeConnection(WebSocketConnectionInterface $user);
+    public function removeConnection(WebSocketTransportInterface $user);
 
     /**
-     * @return WebSocketConnectionInterface[]
+     * @return WebSocketTransportInterface[]
      */
     public function getConnections();
 }

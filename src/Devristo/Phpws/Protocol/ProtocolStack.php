@@ -40,7 +40,7 @@ class ProtocolStack extends EventEmitter
             return $transport;
         };
 
-        $server->on("connect", function(WebSocketConnectionInterface $user) use($that, $stackSpecs, $server, &$ws2last, $instantiator){
+        $server->on("connect", function(WebSocketTransportInterface $user) use($that, $stackSpecs, $server, &$ws2last, $instantiator){
             $carrier = $user;
             $first = null;
 
@@ -84,7 +84,7 @@ class ProtocolStack extends EventEmitter
             $that->emit("connect", array($last));
         });
 
-        $server->on("disconnect", function(WebSocketConnectionInterface $user) use($that, &$ws2last){
+        $server->on("disconnect", function(WebSocketTransportInterface $user) use($that, &$ws2last){
             $lastProtocolOnStack = array_key_exists($user->getId(), $ws2last) ? $ws2last[$user->getId()] : null;
 
             if($lastProtocolOnStack)

@@ -6,41 +6,61 @@ use Devristo\Phpws\Exceptions\WebSocketInvalidKeyException;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Messaging\WebSocketMessage76;
 use React\Stream\WritableStreamInterface;
+use Zend\Http\Headers;
+use Zend\Http\Request;
+use Zend\Http\Response;
 
-class WebSocketConnectionHixie extends WebSocketTransport
+class WebSocketTransportHixie extends WebSocketTransport
 {
 
-    private $_clientHandshake;
-
-    public function __construct(WritableStreamInterface $socket, array $headers, $clientHandshake)
-    {
-        $this->_clientHandshake = $clientHandshake;
-        parent::__construct($socket, $headers);
+    public function respondTo(Request $request){
+        $this->request = $request;
+        $this->sendHandshakeResponse();
     }
 
-    public function sendHandshakeResponse()
+    private function sendHandshakeResponse()
     {
         // Last 8 bytes of the client's handshake are used for key calculation later
-        $l8b = substr($this->_clientHandshake, -8);
+        $l8b = $this->request->getContent();
 
         // Check for 2-key based handshake (Hixie protocol draft)
-        $key1 = isset($this->_headers['Sec-Websocket-Key1']) ? $this->_headers['Sec-Websocket-Key1'] : null;
-        $key2 = isset($this->_headers['Sec-Websocket-Key2']) ? $this->_headers['Sec-Websocket-Key2'] : null;
+        $key1 = $this->getRequest()->getHeader('Sec-Websocket-Key1', null);
+        $key2 = $this->getRequest()->getHeader('Sec-Websocket-Key12', null);
 
         // Origin checking (TODO)
-        $origin = isset($this->_headers['Origin']) ? $this->_headers['Origin'] : null;
-        $host = $this->_headers['Host'];
-        $location = $this->_headers['GET'];
+        $origin = $this->getRequest()->getHeader('Origin', null);
+        $host = $this->getRequest()->getHeader('Host');
+        $location = $this->getRequest()->getUriString();
 
         // Build response
-        $response = "HTTP/1.1 101 WebSocket Protocol Handshake\r\n" . "Upgrade: WebSocket\r\n" . "Connection: Upgrade\r\n";
+        $response = new Response();
+        $response->setStatusCode(101);
+        $response->setReasonPhrase("WebSocket Protocol Handshake");
+
+        $headers = new Headers();
+        $response->setHeaders($headers);
+
+        $headers->addHeaderLine("Upgrade", "WebSocket");
+        $headers->addHeaderLine("Connection", "Upgrade");
+        $headers->addHeaderLine("Sec-WebSocket-Origin", $origin);
+        $headers->addHeaderLine("Sec-WebSocket-Location", "ws://{$host}$location");
 
         // Build HIXIE response
-        $response .= "Sec-WebSocket-Origin: $origin\r\n" . "Sec-WebSocket-Location: ws://{$host}$location\r\n";
-        $response .= "\r\n" . self::calcHixieResponse($key1, $key2, $l8b);
+        $response->setContent(self::calcHixieResponse($key1, $key2, $l8b));
 
-        $this->_socket->write($response);
-        echo "HIXIE Response SENT!";
+        $this->setResponse($response);
+
+        $handshakeRequest = new Handshake($this->getRequest(), $this->getResponse());
+        $this->emit("handshake", array($handshakeRequest));
+
+        if($handshakeRequest->isAborted())
+            $this->close();
+        else {
+            $this->_socket->write($response->toString());
+            $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
+
+            $this->emit("connect");
+        }
     }
 
     /**
@@ -97,5 +117,4 @@ class WebSocketConnectionHixie extends WebSocketTransport
     {
         $this->_socket->close();
     }
-
 }

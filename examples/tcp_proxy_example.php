@@ -5,7 +5,7 @@ require_once("../vendor/autoload.php");
 
 // Run from command prompt > php demo.php
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
 
@@ -37,7 +37,7 @@ class ProxyHandler extends WebSocketUriHandler
         $this->loop = $loop;
     }
 
-    public function onDisconnect(WebSocketConnectionInterface $user)
+    public function onDisconnect(WebSocketTransportInterface $user)
     {
         foreach ($this->getStreamsByUser($user) as $stream) {
             $stream->close();
@@ -48,10 +48,10 @@ class ProxyHandler extends WebSocketUriHandler
     /**
      * Entry point for all messages received from clients in this proxy 'room'
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param WebSocketMessageInterface $msg
      */
-    public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg)
+    public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg)
     {
         try {
             $message = json_decode($msg->getData());
@@ -77,10 +77,10 @@ class ProxyHandler extends WebSocketUriHandler
      *
      * Other events forwarded are connect and close
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param $message
      */
-    protected function requestConnect(WebSocketConnectionInterface $user, $message)
+    protected function requestConnect(WebSocketTransportInterface $user, $message)
     {
         $address = $message->address;
         $this->logger->notice(sprintf("User %s requests connection to %s", $user->getId(), $address));
@@ -143,10 +143,10 @@ class ProxyHandler extends WebSocketUriHandler
     /**
      * Forward data send by the user over the specified TCP stream
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param $message
      */
-    protected function requestWrite(WebSocketConnectionInterface $user, $message)
+    protected function requestWrite(WebSocketTransportInterface $user, $message)
     {
         $stream = $this->getStream($user, $message->connection);
 
@@ -159,10 +159,10 @@ class ProxyHandler extends WebSocketUriHandler
     /**
      * Close the stream specified by the user
      *
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param $message
      */
-    protected function requestClose(WebSocketConnectionInterface $user, $message)
+    protected function requestClose(WebSocketTransportInterface $user, $message)
     {
         $stream = $this->getStream($user, $message->connection);
 
@@ -186,11 +186,11 @@ class ProxyHandler extends WebSocketUriHandler
     }
 
     /**
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @param $id
      * @return \React\Stream\Stream
      */
-    protected function getStream(WebSocketConnectionInterface $user, $id)
+    protected function getStream(WebSocketTransportInterface $user, $id)
     {
         $userStreams = $this->getStreamsByUser($user);
 
@@ -198,20 +198,20 @@ class ProxyHandler extends WebSocketUriHandler
     }
 
     /**
-     * @param WebSocketConnectionInterface $user
+     * @param WebSocketTransportInterface $user
      * @return \React\Stream\Stream[]
      */
-    protected function getStreamsByUser(WebSocketConnectionInterface $user)
+    protected function getStreamsByUser(WebSocketTransportInterface $user)
     {
         return array_key_exists($user->getId(), $this->streams) ? $this->streams[$user->getId()] : array();
     }
 
-    protected function removeStream(WebSocketConnectionInterface $user, $id)
+    protected function removeStream(WebSocketTransportInterface $user, $id)
     {
         unset($this->streams[$user->getId()][$id]);
     }
 
-    protected function addStream(WebSocketConnectionInterface $user, $id, \React\Stream\Stream $stream){
+    protected function addStream(WebSocketTransportInterface $user, $id, \React\Stream\Stream $stream){
         $this->streams[$user->getId()][$id] = $stream;
     }
 }

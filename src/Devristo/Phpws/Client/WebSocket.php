@@ -8,9 +8,9 @@ use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Devristo\Phpws\Protocol\WebSocketTransport;
-use Devristo\Phpws\Protocol\WebSocketConnectionFactory;
-use Devristo\Phpws\Protocol\WebSocketConnectionHybi;
-use Devristo\Phpws\Protocol\WebSocketServerClient;
+use Devristo\Phpws\Protocol\WebSocketTransportFactory;
+use Devristo\Phpws\Protocol\WebSocketTransportHybi;
+use Devristo\Phpws\Protocol\WebSocketConnection;
 use Evenement\EventEmitter;
 use React\EventLoop\LoopInterface;
 use React\Stream\Stream;
@@ -31,7 +31,7 @@ class WebSocket extends EventEmitter
     protected $_timeOut = 1;
 
     /**
-     * @var WebSocketServerClient
+     * @var WebSocketConnection
      */
     protected $stream;
     protected $socket;
@@ -118,8 +118,8 @@ class WebSocket extends EventEmitter
     {
         switch ($this->state) {
             case (self::STATE_HANDSHAKE_SENT):
-                $headers = WebSocketConnectionFactory::parseHeaders($data);
-                $this->_connection = new WebSocketConnectionHybi($this->stream, $headers);
+                $headers = WebSocketTransportFactory::parseHeaders($data);
+                $this->_connection = new WebSocketTransportHybi($this->stream, $headers);
                 $myself = $this;
                 $this->_connection->on("message", function($message) use ($myself){
                     $myself->emit("message", array("message" => $message));

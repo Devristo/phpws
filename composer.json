@@ -16,6 +16,7 @@
     "require": {
         "zendframework/zend-log": "2.*",
         "react/socket": "v0.3.2",
-        "react/socket-client": "v0.3.2"
+        "react/socket-client": "v0.3.2",
+        "zendframework/zend-http": "2.2.5"
     }
 }

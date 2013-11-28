@@ -12,33 +12,41 @@ use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Evenement\EventEmitter;
 use React\Stream\WritableStreamInterface;
+use Zend\Http\Request;
+use Zend\Http\Response;
 use Zend\Log\LoggerAwareInterface;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketTransport extends EventEmitter implements TransportInterface, WebSocketConnectionInterface, LoggerAwareInterface
+abstract class WebSocketTransport extends EventEmitter implements WebSocketTransportInterface, LoggerAwareInterface
 {
-
-    protected $_headers = array();
-
     /**
      * @var LoggerInterface
      */
     protected $logger;
 
     /**
+     * @var Request
+     */
+    protected $request;
+
+    /**
+     * @var Response
+     */
+    protected $response;
+
+    /**
      *
-     * @var WebSocketServerClient
+     * @var WebSocketConnection
      */
     protected $_socket = null;
     protected $_cookies = array();
     public $parameters = null;
-    protected $_role = WebSocketConnectionRole::CLIENT;
+    protected $_role = WebsocketTransportRole::CLIENT;
 
     protected $_eventManger;
 
-    public function __construct(WritableStreamInterface $socket, array $headers)
+    public function __construct(WritableStreamInterface $socket)
     {
-        $this->setHeaders($headers);
         $this->_socket = $socket;
         $this->_id = uniqid("connection-");
     }
@@ -51,6 +59,36 @@ abstract class WebSocketTransport extends EventEmitter implements TransportInter
     public function getId()
     {
         return $this->_id;
+    }
+
+    protected function setRequest(Request $request){
+        $this->request = $request;
+    }
+
+    protected function setResponse(Response $response){
+        $this->response = $response;
+    }
+
+    public function getRequest(){
+        return $this->request;
+    }
+
+    public function getResponse(){
+        return $this->response;
+    }
+
+    public function setRole($role)
+    {
+        $this->_role = $role;
+    }
+
+    public function getSocket()
+    {
+        return $this->_socket;
+    }
+
+    public function setLogger(LoggerInterface $logger){
+        $this->logger = $logger;
     }
 
     public function sendFrame(WebSocketFrameInterface $frame)
@@ -69,103 +107,5 @@ abstract class WebSocketTransport extends EventEmitter implements TransportInter
         }
 
         return true;
-    }
-
-    public function getHeaders()
-    {
-        return $this->_headers;
-    }
-
-    public function setHeaders($headers)
-    {
-        $this->_headers = $headers;
-
-        if (array_key_exists('Cookie', $this->_headers) && is_array($this->_headers['Cookie'])) {
-            $this->_cookies = array();
-        } else {
-            if (array_key_exists("Cookie", $this->_headers)) {
-                $this->_cookies = self::cookie_parse($this->_headers['Cookie']);
-            } else
-                $this->_cookies = array();
-        }
-
-        $this->getQueryParts();
-    }
-
-    /**
-     * Parse a HTTP HEADER 'Cookie:' value into a key-value pair array
-     *
-     * @param string $line Value of the COOKIE header
-     * @return array Key-value pair array
-     */
-    private static function cookie_parse($line)
-    {
-        $cookies = array();
-        $csplit = explode(';', $line);
-
-        foreach ($csplit as $data) {
-
-            $cinfo = explode('=', $data);
-            $key = trim($cinfo[0]);
-            $val = urldecode($cinfo[1]);
-
-            $cookies[$key] = $val;
-        }
-
-        return $cookies;
-    }
-
-    public function getCookies()
-    {
-        return $this->_cookies;
-    }
-
-    public function getUriRequested()
-    {
-        if (array_key_exists('GET', $this->_headers))
-            return $this->_headers['GET'];
-        else
-            return null;
-    }
-
-    public function setRole($role)
-    {
-        $this->_role = $role;
-    }
-
-    protected function getQueryParts()
-    {
-        $url = $this->getUriRequested();
-
-        // We dont have an URL to process (this is the case for the client)
-        if ($url == null)
-            return;
-
-        if (($pos = strpos($url, "?")) == -1) {
-            $this->parameters = array();
-        }
-
-        $q = substr($url, strpos($url, "?") + 1);
-
-        $keyValuePairs = explode("&", $q);
-        $this->parameters = array();
-
-        foreach ($keyValuePairs as $kv) {
-            if (strpos($kv, "=") == -1)
-                continue;
-
-            @list($k, $v) = explode("=", $kv);
-
-            $this->parameters[urldecode($k)] = urldecode($v);
-        }
-    }
-
-    public function getSocket()
-    {
-        return $this->_socket;
-    }
-
-    public function setLogger(LoggerInterface $logger){
-        $this->logger = $logger;
     }
 }

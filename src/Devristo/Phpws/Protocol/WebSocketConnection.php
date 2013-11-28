@@ -5,9 +5,10 @@ namespace Devristo\Phpws\Protocol;
 use Exception;
 use React\EventLoop\LoopInterface;
 use React\Socket\Connection;
+use Zend\Http\Request;
 use Zend\Log\LoggerInterface;
 
-class WebSocketServerClient extends Connection
+class WebSocketConnection extends Connection
 {
     /**
      * @var LoggerInterface
@@ -16,9 +17,9 @@ class WebSocketServerClient extends Connection
 
     /**
      *
-     * @var WebSocketConnectionInterface
+     * @var WebSocketTransportInterface
      */
-    private $_connection = null;
+    private $_transport = null;
     private $_lastChanged = null;
 
     public function __construct($socket, LoopInterface $loop, $logger)
@@ -45,8 +46,8 @@ class WebSocketServerClient extends Connection
         try {
             $this->_lastChanged = time();
 
-            if ($this->_connection)
-                $this->_connection->onData($data);
+            if ($this->_transport)
+                $this->_transport->onData($data);
             else
                 $this->establishConnection($data);
         } catch (Exception $e) {
@@ -55,27 +56,37 @@ class WebSocketServerClient extends Connection
         }
     }
 
-    public function setConnection(WebSocketConnectionInterface $con)
+    public function setTransport(WebSocketTransportInterface $con)
     {
-        $this->_connection = $con;
+        $this->_transport = $con;
     }
 
     public function establishConnection($data)
     {
-        $this->_connection = WebSocketConnectionFactory::fromSocketData($this, $data, $this->logger);
+        $this->_transport = WebSocketTransportFactory::fromSocketData($this, $data, $this->logger);
         $myself = $this;
-        $this->_connection->on("message", function($message) use($myself){
+
+        $this->_transport->on("handshake", function(Handshake $request) use ($myself){
+            $myself->emit("handshake", array($request));
+        });
+
+        $this->_transport->on("connect", function() use ($myself){
+            $myself->emit("connect", array($myself));
+        });
+
+        $this->_transport->on("message", function($message) use($myself){
             $myself->emit("message", array("message" => $message));
         });
 
-        $this->_connection->on("flashXmlRequest", function($message) use($myself){
+        $this->_transport->on("flashXmlRequest", function($message) use($myself){
             $myself->emit("flashXmlRequest");
         });
 
-        if ($this->_connection instanceof WebSocketConnectionFlash)
+        if ($this->_transport instanceof WebSocketTransportFlash)
             return;
 
-        $this->emit("connect");
+        $request = Request::fromString($data);
+        $this->_transport->respondTo($request);
     }
 
     public function getLastChanged()
@@ -85,11 +96,11 @@ class WebSocketServerClient extends Connection
 
     /**
      *
-     * @return WebSocketConnectionInterface
+     * @return WebSocketTransportInterface
      */
-    public function getConnection()
+    public function getTransport()
     {
-        return $this->_connection;
+        return $this->_transport;
     }
 
     public function setLogger(LoggerInterface $logger)

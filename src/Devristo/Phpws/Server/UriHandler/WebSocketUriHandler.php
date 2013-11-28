@@ -3,7 +3,7 @@
 namespace Devristo\Phpws\Server\UriHandler;
 
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use Evenement\EventEmitter;
 use SplObjectStorage;
@@ -41,26 +41,26 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
         $this->on("connect", array($this, 'onConnect'));
     }
 
-    public function addConnection(WebSocketConnectionInterface $user)
+    public function addConnection(WebSocketTransportInterface $user)
     {
         $this->users->attach($user);
     }
 
-    public function removeConnection(WebSocketConnectionInterface $user)
+    public function removeConnection(WebSocketTransportInterface $user)
     {
         $this->users->detach($user);
     }
 
-    public function onDisconnect(WebSocketConnectionInterface $user)
+    public function onDisconnect(WebSocketTransportInterface $user)
     {
 
     }
 
-    public function onConnect(WebSocketConnectionInterface $user){
+    public function onConnect(WebSocketTransportInterface $user){
 
     }
 
-    public function onMessage(WebSocketConnectionInterface $user, WebSocketMessageInterface $msg)
+    public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg)
     {
 
     }

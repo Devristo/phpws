@@ -2,8 +2,9 @@
 
 namespace Devristo\Phpws\Server;
 
-use Devristo\Phpws\Protocol\WebSocketConnectionInterface;
-use Devristo\Phpws\Protocol\WebSocketServerClient;
+use Devristo\Phpws\Protocol\Handshake;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
+use Devristo\Phpws\Protocol\WebSocketConnection;
 use Evenement\EventEmitter;
 use Exception;
 use React\EventLoop\LoopInterface;
@@ -22,13 +23,13 @@ class WebSocketServer extends EventEmitter
     /**
      *
      * The raw streams connected to the WebSocket server (whether a handshake has taken place or not)
-     * @var WebSocketServerClient[]|SplObjectStorage
+     * @var WebSocketConnection[]|SplObjectStorage
      */
     protected $_streams;
 
     /**
      * The connected clients to the WebSocket server, a valid handshake has been performed.
-     * @var \SplObjectStorage|WebSocketConnectionInterface[]
+     * @var \SplObjectStorage|WebSocketTransportInterface[]
      */
     protected $_connections = array();
 
@@ -113,12 +114,16 @@ class WebSocketServer extends EventEmitter
             }
 
             stream_set_blocking($newSocket, 0);
-            $client = new WebSocketServerClient($newSocket, $that->loop, $logger);
+            $client = new WebSocketConnection($newSocket, $that->loop, $logger);
             $sockets->attach($client);
+
+            $client->on("handshake", function(Handshake $request) use($that, $client){
+                $that->emit("handshake",array($client->getTransport(), $request));
+            });
 
             $client->on("connect", function () use ($that, $client, $logger) {
                 try {
-                    $con = $client->getConnection();
+                    $con = $client->getTransport();
                     $that->getConnections()->attach($con);
                     $that->emit("connect", array("client" => $con));
                 } catch (Exception $e) {
@@ -128,7 +133,7 @@ class WebSocketServer extends EventEmitter
 
             $client->on("message", function ($message) use ($that, $client, $logger) {
                 try {
-                    $connection = $client->getConnection();
+                    $connection = $client->getTransport();
                     $that->emit("message", array("client" => $connection, "message" => $message));
                 } catch (Exception $e) {
                     $logger->err("[on_message] Error occurred while running a callback");
@@ -137,7 +142,7 @@ class WebSocketServer extends EventEmitter
 
             $client->on("close", function () use ($that, $client, $logger) {
                 try{
-                    $connection = $client->getConnection();
+                    $connection = $client->getTransport();
 
                     if($connection){
                         $that->getConnections()->detach($connection);
@@ -149,7 +154,7 @@ class WebSocketServer extends EventEmitter
             });
 
             $client->on("flashXmlRequest", function () use ($that, $client) {
-                $client->getConnection()->sendString($that->FLASH_POLICY_FILE);
+                $client->getTransport()->sendString($that->FLASH_POLICY_FILE);
                 $client->close();
             });
         });

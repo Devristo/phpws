@@ -10,29 +10,20 @@ namespace Devristo\Phpws\Protocol;
 
 use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
+use Zend\Http\Request;
 
-interface WebSocketConnectionInterface
+interface WebSocketTransportInterface extends TransportInterface
 {
 
     public function getId();
 
-    public function sendHandshakeResponse();
+    public function respondTo(Request $request);
 
     public function setRole($role);
 
     public function onData($data);
 
-    public function sendFrame(WebSocketFrameInterface $frame);
-
-    public function sendMessage(WebSocketMessageInterface $msg);
-
     public function sendString($msg);
-
-    public function getHeaders();
-
-    public function getUriRequested();
-
-    public function getCookies();
 
     public function getIp();
 

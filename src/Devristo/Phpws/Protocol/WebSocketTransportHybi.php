@@ -12,9 +12,13 @@ use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessage;
+use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Exception;
+use Zend\Http\Headers;
+use Zend\Http\Request;
+use Zend\Http\Response;
 
-class WebSocketConnectionHybi extends WebSocketTransport
+class WebSocketTransportHybi extends WebSocketTransport
 {
 
     /**
@@ -27,20 +31,42 @@ class WebSocketConnectionHybi extends WebSocketTransport
      */
     private $lastFrame = null;
 
-    public function sendHandshakeResponse()
+    public function respondTo(Request $request){
+        $this->request = $request;
+        $this->_role = WebsocketTransportRole::SERVER;
+        $this->sendHandshakeResponse();
+    }
+
+    private function sendHandshakeResponse()
     {
         // Check for newer handshake
-        $challenge = isset($this->_headers['Sec-Websocket-Key']) ? $this->_headers['Sec-Websocket-Key'] : null;
+        $challenge = $this->getRequest()->getHeader('Sec-Websocket-Key', null)->getFieldValue();
 
         // Build response
-        $response = "HTTP/1.1 101 WebSocket Protocol Handshake\r\n" . "Upgrade: WebSocket\r\n" . "Connection: Upgrade\r\n";
+        $response = new Response();
+        $response->setStatusCode(101);
+        $response->setReasonPhrase("WebSocket Protocol Handshake");
 
-        // Build HYBI response
-        $response .= "Sec-WebSocket-Accept: " . self::calcHybiResponse($challenge) . "\r\n\r\n";
+        $headers = new Headers();
+        $response->setHeaders($headers);
 
-        $this->_socket->write($response);
+        $headers->addHeaderLine("Upgrade", "WebSocket");
+        $headers->addHeaderLine("Connection", "Upgrade");
+        $headers->addHeaderLine("Sec-WebSocket-Accept", self::calcHybiResponse($challenge));
 
-        $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
+        $this->setResponse($response);
+
+        $handshakeRequest = new Handshake($this->getRequest(), $this->getResponse());
+        $this->emit("handshake", array($handshakeRequest));
+
+        if($handshakeRequest->isAborted())
+            $this->close();
+        else {
+            $this->_socket->write($response->toString());
+            $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
+
+            $this->emit("connect");
+        }
     }
 
     private static function calcHybiResponse($challenge)
@@ -79,7 +105,7 @@ class WebSocketConnectionHybi extends WebSocketTransport
         $hybiFrame = $frame;
 
         // Mask IFF client!
-        $hybiFrame->setMasked($this->_role == WebSocketConnectionRole::CLIENT);
+        $hybiFrame->setMasked($this->_role == WebsocketTransportRole::CLIENT);
 
         parent::sendFrame($hybiFrame);
     }

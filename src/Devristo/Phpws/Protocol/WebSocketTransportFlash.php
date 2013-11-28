@@ -10,7 +10,7 @@ namespace Devristo\Phpws\Protocol;
 
 use Exception;
 
-class WebSocketConnectionFlash extends WebSocketTransport
+class WebSocketTransportFlash extends WebSocketTransport
 {
 
     public function __construct($socket, $data)

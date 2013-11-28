@@ -3,6 +3,7 @@
 require_once("../vendor/autoload.php");
 use Devristo\Phpws\Protocol\Handshake;
 use Devristo\Phpws\Protocol\TransportInterface;
+use Devristo\Phpws\Protocol\WebSocketTransport;
 use Devristo\Phpws\Server\WebSocketServer;
 
 $loop = \React\EventLoop\Factory::create();
@@ -14,7 +15,7 @@ $logger->addWriter($writer);
 
 // Create a WebSocket server using SSL
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
-$server->on("handshake", function(TransportInterface $client, Handshake $handshake){
+$server->on("handshake", function(WebSocketTransport $client, Handshake $handshake){
     // Here we can alter or abort PHPWS's response to the user
     $handshake->getResponse()->getHeaders()->addHeaderLine("X-WebSocket-Server", "phpws");
 
@@ -23,8 +24,10 @@ $server->on("handshake", function(TransportInterface $client, Handshake $handsha
     $handshake->getResponse()->getHeaders()->addHeaderLine("X-User-Agent",$userAgent);
 
     // Since we cannot see in the browser what headers were sent by the server, we will send them again as a message
-    $client->on("connect", function() use ($client, $handshake){
-        $client->sendString($handshake->getResponse()->toString());
+    $client->on("connect", function() use ($client){
+
+        // The request and the response is available on the transport object as well.
+        $client->sendString($client->getHandshakeResponse()->toString());
     });
 });
 

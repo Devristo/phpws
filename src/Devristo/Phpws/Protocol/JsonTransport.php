@@ -101,8 +101,4 @@ class JsonTransport extends EventEmitter implements TransportInterface{
 
         $this->carrierProtocol->sendString($message->toJson());
     }
-
-    public function getId(){
-        return $this->carrierProtocol->getId();
-    }
 }

@@ -69,11 +69,11 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
         $this->response = $response;
     }
 
-    public function getRequest(){
+    public function getHandshakeRequest(){
         return $this->request;
     }
 
-    public function getResponse(){
+    public function getHandshakeResponse(){
         return $this->response;
     }
 

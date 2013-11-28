@@ -40,7 +40,7 @@ class WebSocketTransportHybi extends WebSocketTransport
     private function sendHandshakeResponse()
     {
         // Check for newer handshake
-        $challenge = $this->getRequest()->getHeader('Sec-Websocket-Key', null)->getFieldValue();
+        $challenge = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key', null)->getFieldValue();
 
         // Build response
         $response = new Response();
@@ -56,7 +56,7 @@ class WebSocketTransportHybi extends WebSocketTransport
 
         $this->setResponse($response);
 
-        $handshakeRequest = new Handshake($this->getRequest(), $this->getResponse());
+        $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
         $this->emit("handshake", array($handshakeRequest));
 
         if($handshakeRequest->isAborted())

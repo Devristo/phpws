@@ -24,13 +24,13 @@ class WebSocketTransportHixie extends WebSocketTransport
         $l8b = $this->request->getContent();
 
         // Check for 2-key based handshake (Hixie protocol draft)
-        $key1 = $this->getRequest()->getHeader('Sec-Websocket-Key1', null);
-        $key2 = $this->getRequest()->getHeader('Sec-Websocket-Key12', null);
+        $key1 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key1', null);
+        $key2 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key12', null);
 
         // Origin checking (TODO)
-        $origin = $this->getRequest()->getHeader('Origin', null);
-        $host = $this->getRequest()->getHeader('Host');
-        $location = $this->getRequest()->getUriString();
+        $origin = $this->getHandshakeRequest()->getHeader('Origin', null);
+        $host = $this->getHandshakeRequest()->getHeader('Host');
+        $location = $this->getHandshakeRequest()->getUriString();
 
         // Build response
         $response = new Response();
@@ -50,7 +50,7 @@ class WebSocketTransportHixie extends WebSocketTransport
 
         $this->setResponse($response);
 
-        $handshakeRequest = new Handshake($this->getRequest(), $this->getResponse());
+        $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
         $this->emit("handshake", array($handshakeRequest));
 
         if($handshakeRequest->isAborted())

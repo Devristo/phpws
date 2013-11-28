@@ -72,7 +72,7 @@ class ClientRouter {
      */
     public function matchConnection(WebSocketTransport $client){
         foreach($this->handlers as $key => $value ){
-            if(preg_match($key,$client->getRequest()->getUriString()))
+            if(preg_match($key,$client->getHandshakeRequest()->getUriString()))
                 return $value;
         }
 

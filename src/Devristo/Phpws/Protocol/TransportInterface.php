@@ -12,7 +12,6 @@ namespace Devristo\Phpws\Protocol;
 use Evenement\EventEmitterInterface;
 
 interface TransportInterface extends EventEmitterInterface{
-    public function getId();
     public function onData($data);
     public function sendString($string);
 } 

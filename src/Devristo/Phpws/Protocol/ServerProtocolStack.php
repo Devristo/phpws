@@ -13,7 +13,7 @@ use Devristo\Phpws\Messaging\MessageInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use Evenement\EventEmitter;
 
-class ProtocolStack extends EventEmitter
+class ServerProtocolStack extends EventEmitter
 {
     protected $server;
 
@@ -28,7 +28,7 @@ class ProtocolStack extends EventEmitter
         if (count($stackSpecs) < 1)
             throw new \InvalidArgumentException("Stack should be a non empty array");
 
-        $ws2last = array();
+        $ws2stack = array();
 
         // A specification can be either a fully qualified class name or a lambda expression: TransportInterface -> TransportInterface
         $instantiator = function($spec, TransportInterface $carrier){
@@ -40,7 +40,7 @@ class ProtocolStack extends EventEmitter
             return $transport;
         };
 
-        $server->on("connect", function(WebSocketTransportInterface $user) use($that, $stackSpecs, $server, &$ws2last, $instantiator){
+        $server->on("connect", function(WebSocketTransportInterface $user) use($that, $stackSpecs, $server, &$ws2stack, $instantiator){
             $carrier = $user;
             $first = null;
 
@@ -62,8 +62,9 @@ class ProtocolStack extends EventEmitter
             $first = $stack[0];
             $last = $stack[count($stack) - 1];
 
-            // Remember the last protocol on the stack for this websocket connection, used to trigger disconnect event
-            $ws2last[$user->getId()] = $last;
+            // Remember the stack for this websocket connection, used to trigger disconnect event
+            $stackCollection = new ConnectionProtocolStack($stack);
+            $ws2stack[$user->getId()] = $stackCollection;
 
             // Link the first in the stack directly to the WebSocket server
             $server->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
@@ -77,18 +78,18 @@ class ProtocolStack extends EventEmitter
             }
 
             // When the last protocol produces a message, emit it on our ProtocolStack
-            $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that) {
-                $that->emit("message", array($interface, $message));
+            $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that, $stackCollection) {
+                $that->emit("message", array($stackCollection, $message));
             });
 
-            $that->emit("connect", array($last));
+            $that->emit("connect", array($stackCollection));
         });
 
-        $server->on("disconnect", function(WebSocketTransportInterface $user) use($that, &$ws2last){
-            $lastProtocolOnStack = array_key_exists($user->getId(), $ws2last) ? $ws2last[$user->getId()] : null;
+        $server->on("disconnect", function(WebSocketTransportInterface $user) use($that, &$ws2stack){
+            $stack = array_key_exists($user->getId(), $ws2stack) ? $ws2stack[$user->getId()] : null;
 
-            if($lastProtocolOnStack)
-                $that->emit("disconnect", array($lastProtocolOnStack));
+            if($stack)
+                $that->emit("disconnect", array($stack));
         });
     }
 } 

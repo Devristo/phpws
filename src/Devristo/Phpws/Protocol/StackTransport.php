@@ -15,7 +15,48 @@ use Zend\Http\Response;
 class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
     protected $stack;
 
-    public function __construct(array &$stack){
+    public static function create(WebSocketTransportInterface $webSocketTransport, $stackSpecs)
+    {
+        if (count($stackSpecs) < 1)
+            throw new \InvalidArgumentException("Stack should be a non empty array");
+
+        $ws2stack = array();
+
+        // A specification can be either a fully qualified class name or a lambda expression: TransportInterface -> TransportInterface
+        $instantiator = function($spec, TransportInterface $carrier){
+            if(is_string($spec)){
+                $transport = new $spec($carrier);
+            } elseif(is_callable($spec)){
+                $transport = $spec($carrier);
+            }
+            return $transport;
+        };
+
+        $carrier = $webSocketTransport;
+        $first = null;
+
+        /**
+         * @var $stack TransportInterface[]
+         */
+        $stack = array($carrier);
+
+        // Instantiate transports
+        $i = 0;
+        do{
+            $transport = $instantiator($stackSpecs[$i], new StackTransport($stack));
+            $stack[] = $transport;
+
+            $i++;
+        }while($i < count($stackSpecs));
+
+        $first = $stack[1];
+        $last = $stack[count($stack) - 1];
+
+        // Remember the stack for this websocket connection, used to trigger disconnect event
+        return new StackTransport($stack);
+    }
+
+    public function __construct(array $stack){
         if(count($stack) < 1)
             throw new \InvalidArgumentException("Stack must be a non-empty array");
 
@@ -100,32 +141,32 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
 
     public function on($event, $listener)
     {
-        return $this->getWebSocketTransport()->on($event, $listener);
+        return $this->getTopTransport()->on($event, $listener);
     }
 
     public function once($event, $listener)
     {
-        return $this->getWebSocketTransport()->once($event, $listener);
+        return $this->getTopTransport()->once($event, $listener);
     }
 
     public function removeListener($event, $listener)
     {
-        return $this->getWebSocketTransport()->removeListener($event, $listener);
+        return $this->getTopTransport()->removeListener($event, $listener);
     }
 
     public function removeAllListeners($event = null)
     {
-        return $this->getWebSocketTransport()->removeAllListeners($event);
+        return $this->getTopTransport()->removeAllListeners($event);
     }
 
     public function listeners($event)
     {
-        return $this->getWebSocketTransport()->listeners($event);
+        return $this->getTopTransport()->listeners($event);
     }
 
     public function emit($event, array $arguments = array())
     {
-        return $this->getWebSocketTransport()->emit($event, $arguments);
+        return $this->getTopTransport()->emit($event, $arguments);
     }
 
     public function getId()

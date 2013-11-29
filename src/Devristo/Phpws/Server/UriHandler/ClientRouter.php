@@ -8,18 +8,23 @@
 
 namespace Devristo\Phpws\Server\UriHandler;
 
+use Devristo\Phpws\Messaging\MessageInterface;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
+use Devristo\Phpws\Protocol\TransportInterface;
 use Devristo\Phpws\Protocol\WebSocketTransport;
 use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 use Zend\Log\LoggerInterface;
 
 class ClientRouter {
-    protected $handlers = array();
+    protected $handlers;
+    protected $logger;
+
     protected $membership;
     public function __construct($server, LoggerInterface $logger){
         $this->server = $server;
-
+        $this->logger = $logger;
+        $this->handlers = new \SplObjectStorage();
         $this->membership = new \SplObjectStorage();
 
         /**
@@ -55,32 +60,34 @@ class ClientRouter {
                 $logger->warn("Client {$client->getId()} not attached to any handler, so cannot remove it!");
             }
         });
-
-        $server->on("message", function(WebSocketTransportInterface $client, WebSocketMessageInterface $message) use($that, $logger, $membership){
-            if($membership->contains($client)){
-                $handler = $membership[$client];
-                $handler->emit("message", compact('client', 'message'));
-            } else {
-                $logger->warn("Client {$client->getId()} not attached to any handler, so cannot forward the message!");
-            }
-        });
-
     }
 
     /**
-     * @param \Devristo\Phpws\Protocol\WebSocketTransport|\Devristo\Phpws\Protocol\WebSocketTransportInterface $client
+     * @param \Devristo\Phpws\Protocol\WebSocketTransportInterface $transport
      * @return null|WebSocketUriHandlerInterface
      */
-    public function matchConnection(WebSocketTransportInterface $client){
-        foreach($this->handlers as $key => $value ){
-            if(preg_match($key,$client->getHandshakeRequest()->getUriString()))
-                return $value;
+    public function matchConnection(WebSocketTransportInterface $transport){
+        foreach($this->handlers as $tester){
+            if($tester($transport))
+                return $this->handlers[$tester];
         }
 
         return null;
     }
 
-    public function addUriHandler($matchPattern, WebSocketUriHandlerInterface $handler){
-        $this->handlers[$matchPattern] = $handler;
+    /**
+     * @param string|callable $tester Either a regexp or a callable function: WebSocketTransportInterface -> boolean
+     * @param WebSocketUriHandlerInterface $handler
+     * @throws \InvalidArgumentException
+     */
+    public function addRoute($tester, WebSocketUriHandlerInterface $handler){
+        if(is_string($tester)){
+            $tester = function(WebSocketTransportInterface $transport) use ($tester){
+                return preg_match($tester, $transport->getHandshakeRequest()->getUriString());
+            };
+        } elseif(!is_callable($tester))
+            throw new \InvalidArgumentException("Tester should either be a regexp or a callable");
+
+        $this->handlers->attach($tester, $handler);
     }
 } 

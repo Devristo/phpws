@@ -3,6 +3,7 @@
 <head>
     <title>Protocol stacking</title>
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="../js/phpws.js"></script>
 </head>
 <body>
 
@@ -11,32 +12,25 @@
 
 <script>
     var log = document.getElementById("log");
-    var socket = new WebSocket("ws://localhost:12345/stack");
-    socket.onopen = function(){
+
+
+    var socket = new Phpws.Client("ws://localhost:12345/stack");
+    socket.open().then(function(){
         log.innerText += "Connected\n";
-    };
-    socket.onclose = function(){
+    });
+
+    socket.on("close", function(){
         log.innerText += "Closed\n";
-    };
-    socket.onmessage = function(msg) {
-        var jsonMessage = JSON.parse(msg.data);
+    });
 
+    var jsonTransport = new Phpws.JsonTransport(socket);
 
-        log.innerText += "Got message: " + msg.data + "\n";
-
-
-        var reply = {
-            tag: jsonMessage.tag,
-            data: 'hello to you too!'
-        };
-
-        var json = JSON.stringify(reply);
-
-        log.innerText += "Replying with message: " + json + "\n";
-
-        socket.send(json);
+    jsonTransport.on("message", function(jsonMessage){
+        log.innerText += "Got message '" + jsonMessage.getData() + "'. Will send reply now before closing!\n";
+        jsonMessage.reply("Hello to you too!");
         socket.close();
-    };
+    });
+
 
 
 </script>

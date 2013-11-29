@@ -27,7 +27,6 @@ class WebSocketConnection extends Connection
         parent::__construct($socket, $loop);
 
         $this->_lastChanged = time();
-        $this->on("data", array($this, 'onData'));
         $this->logger = $logger;
     }
 
@@ -37,17 +36,17 @@ class WebSocketConnection extends Connection
         if ('' === $data || false === $data) {
             $this->end();
         } else {
-            $this->emit('data', array($data, $this));
+            $this->onData($data);
         }
     }
 
-    public function onData($data)
+    private function onData($data)
     {
         try {
             $this->_lastChanged = time();
 
             if ($this->_transport)
-                $this->_transport->handleData($data);
+                $this->emit('data', array($data, $this));
             else
                 $this->establishConnection($data);
         } catch (Exception $e) {

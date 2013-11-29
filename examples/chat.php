@@ -58,7 +58,7 @@ $logger->addWriter($writer);
 // Create a WebSocket server and create a router which sends all user requesting /echo to the DemoEchoHandler above
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
-$router->addUriHandler('#^/chat$#i', new ChatHandler($logger));
+$router->addRoute('#^/chat$#i', new ChatHandler($logger));
 
 // Bind the server
 $server->bind();

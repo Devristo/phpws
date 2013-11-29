@@ -9,7 +9,7 @@ use Evenement\EventEmitter;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
 
-abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInterface
+class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInterface
 {
 
     /**

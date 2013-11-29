@@ -8,24 +8,37 @@ use Devristo\Phpws\Protocol\StackTransport;
 use Devristo\Phpws\Protocol\JsonTransport;
 use Devristo\Phpws\Protocol\ServerProtocolStack;
 use Devristo\Phpws\Protocol\TransportInterface;
+use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Server\WebSocketServer;
 
 
 class StackHandler extends \Devristo\Phpws\Server\UriHandler\WebSocketUriHandler{
+    protected $loop;
+
+    public function __construct(\React\EventLoop\LoopInterface $loop, $logger){
+        parent::__construct($logger);
+        $this->loop = $loop;
+    }
+
     /**
      * Notify everyone when a user has joined the chat
      *
      * @param StackTransport $stackTransport
      */
-    public function onConnect(\Devristo\Phpws\Protocol\WebSocketTransportInterface $stackTransport){
+    public function onConnect(WebSocketTransportInterface $transport){
         /**
          * @var $stackTransport StackTransport
          * @var $jsonTransport JsonTransport
          */
-        $jsonTransport = $stackTransport->getTopTransport();
         $logger = $this->logger;
+        $loop = $this->loop;
+        $stackTransport = StackTransport::create($transport, array(function(TransportInterface $carrier) use($loop, $logger){
+            return new JsonTransport($carrier, $loop, $logger);
+        }));
 
-        $server = $stackTransport->getHandshakeResponse()->getHeaders()->get('X-WebSocket-Server')->getFieldValue();
+        $jsonTransport = $stackTransport->getTopTransport();
+
+        $server = $transport->getHandshakeResponse()->getHeaders()->get('X-WebSocket-Server')->getFieldValue();
 
         $jsonTransport->whenResponseTo("hello world from $server!", 0.1)->then(function(JsonMessage $result) use ($logger, $server){
             $logger->notice(sprintf("Got '%s' in response to 'hello world from $server!'", $result->getData()));
@@ -47,15 +60,8 @@ $server->on("handshake", function(\Devristo\Phpws\Protocol\WebSocketTransportInt
     $handshake->getResponse()->getHeaders()->addHeaderLine("X-WebSocket-Server", "phpws");
 });
 
-// Here we create a new protocol stack on top of WebSocketMessages
-$stack = new ServerProtocolStack($server, array(
-    function(TransportInterface $carrier) use ($loop, $logger){
-        return new JsonTransport($carrier, $loop, $logger);
-    }
-));
-
-$router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($stack, $logger);
-$router->addUriHandler('#^/stack#i', new StackHandler($logger));
+$router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
+$router->addRoute('#^/stack#i', new StackHandler($loop, $logger));
 
 // Start the event loop
 $loop->run();

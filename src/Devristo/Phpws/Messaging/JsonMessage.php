@@ -46,11 +46,11 @@ class JsonMessage implements MessageInterface {
     }
 
     public static function fromJson($jsonString){
-        $data = json_decode($jsonString,true);
+        $data = json_decode($jsonString);
 
         $JsonMessage = new JsonMessage();
-        $JsonMessage->setData($data['data']);
-        $JsonMessage->setTag($data['tag']);
+        $JsonMessage->setData($data->data);
+        $JsonMessage->setTag($data->tag);
 
         return $JsonMessage;
     }

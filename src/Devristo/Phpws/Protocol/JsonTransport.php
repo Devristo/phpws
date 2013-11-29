@@ -9,6 +9,7 @@
 namespace Devristo\Phpws\Protocol;
 
 use Devristo\Phpws\Messaging\JsonMessage;
+use Devristo\Phpws\Messaging\MessageInterface;
 use Evenement\EventEmitter;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
@@ -32,6 +33,34 @@ class JsonTransport extends EventEmitter implements TransportInterface{
         $this->logger = $logger;
         $this->loop = $loop;
         $this->carrierProtocol = $carrierProtocol;
+
+        $deferreds = &$this->deferred;
+        $timers = &$this->timers;
+
+        $carrierProtocol->on("message", function(MessageInterface $message) use (&$deferreds, &$timers, &$loop, $that, $logger){
+            $string = $message->getData();
+
+            try{
+                $jsonMessage = JsonMessage::fromJson($string);
+
+                $tag = $jsonMessage->getTag();
+
+                if(array_key_exists($tag, $deferreds)){
+                    $deferred = $deferreds[$tag];
+                    unset($deferreds[$tag]);
+
+                    if(array_key_exists($tag, $timers)){
+                        $loop->cancelTimer($timers[$tag]);
+                        unset($timers[$tag]);
+                    }
+                    $deferred->resolve($jsonMessage);
+                }else
+                    $that->emit("message", array($jsonMessage));
+
+            }catch(\Exception $e){
+                $logger->err("Exception while parsing JsonMessage: ".$e->getMessage());
+            }
+        });
     }
 
     public function replyTo(JsonMessage $message, $data){
@@ -68,35 +97,10 @@ class JsonTransport extends EventEmitter implements TransportInterface{
         return $deferred->promise();
     }
 
-
-    public function handleData($string)
-    {
-        try{
-            $jsonMessage = JsonMessage::fromJson($string);
-
-            $tag = $jsonMessage->getTag();
-
-            if(array_key_exists($tag, $this->deferred)){
-                $deferred = $this->deferred[$tag];
-                unset($this->deferred[$tag]);
-
-                if(array_key_exists($tag, $this->timers)){
-                    $this->loop->cancelTimer($this->timers[$tag]);
-                    unset($this->timers[$tag]);
-                }
-                $deferred->resolve($jsonMessage);
-            }else
-                $this->emit("message", array($this, $jsonMessage));
-
-        }catch(\Exception $e){
-            $this->logger->err("Exception while parsing JsonMessage: ".$e->getMessage());
-        }
-    }
-
     public function sendString($string)
     {
         $message = new JsonMessage();
-        $message->setTag(null);
+        $message->setTag(uniqid("server-"));
         $message->setData($string);
 
         $this->carrierProtocol->sendString($message->toJson());

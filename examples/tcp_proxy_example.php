@@ -223,7 +223,7 @@ $logger->addWriter($writer);
 
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
-$router->addUriHandler("#^/proxy$#i", new ProxyHandler($loop, $logger));
+$router->addRoute("#^/proxy$#i", new ProxyHandler($loop, $logger));
 
 $server->bind();
 $loop->run();

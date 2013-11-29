@@ -12,7 +12,8 @@ use Devristo\Phpws\Protocol\Handshake;
 class OriginEnforcer {
     public function __construct(WebSocketServer $server, array $allowedOrigins){
         $server->on("handshake", function(Handshake $handshake) use ($allowedOrigins){
-            $origin = $handshake->getRequest()->getHeaders('Origin', null);
+            $originHeader = $handshake->getRequest()->getHeader('Origin', null);
+            $origin = $originHeader ? $originHeader->getFieldValue() : null;
 
             if(in_array("*", $allowedOrigins) || !in_array($origin, $allowedOrigins))
                 $handshake->abort();

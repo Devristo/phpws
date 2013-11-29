@@ -60,6 +60,15 @@ class ClientRouter {
                 $logger->warn("Client {$client->getId()} not attached to any handler, so cannot remove it!");
             }
         });
+
+        $server->on("message", function(WebSocketTransportInterface $client, WebSocketMessageInterface $message) use($that, $logger, $membership){
+            if($membership->contains($client)){
+                $handler = $membership[$client];
+                $handler->emit("message", compact('client', 'message'));
+            } else {
+                $logger->warn("Client {$client->getId()} not attached to any handler, so cannot forward the message!");
+            }
+        });
     }
 
     /**

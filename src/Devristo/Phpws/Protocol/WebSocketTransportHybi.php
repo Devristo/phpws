@@ -39,33 +39,43 @@ class WebSocketTransportHybi extends WebSocketTransport
 
     private function sendHandshakeResponse()
     {
-        // Check for newer handshake
-        $challenge = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key', null)->getFieldValue();
+        try{
+            $challengeHeader = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key', null);
 
-        // Build response
-        $response = new Response();
-        $response->setStatusCode(101);
-        $response->setReasonPhrase("WebSocket Protocol Handshake");
+            if(!$challengeHeader)
+                throw new Exception("No Sec-WebSocket-Key received!");
 
-        $headers = new Headers();
-        $response->setHeaders($headers);
+            // Check for newer handshake
+            $challenge = $challengeHeader->getFieldValue();
 
-        $headers->addHeaderLine("Upgrade", "WebSocket");
-        $headers->addHeaderLine("Connection", "Upgrade");
-        $headers->addHeaderLine("Sec-WebSocket-Accept", self::calcHybiResponse($challenge));
+            // Build response
+            $response = new Response();
+            $response->setStatusCode(101);
+            $response->setReasonPhrase("WebSocket Protocol Handshake");
 
-        $this->setResponse($response);
+            $headers = new Headers();
+            $response->setHeaders($headers);
 
-        $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
-        $this->emit("handshake", array($handshakeRequest));
+            $headers->addHeaderLine("Upgrade", "WebSocket");
+            $headers->addHeaderLine("Connection", "Upgrade");
+            $headers->addHeaderLine("Sec-WebSocket-Accept", self::calcHybiResponse($challenge));
 
-        if($handshakeRequest->isAborted())
+            $this->setResponse($response);
+
+            $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
+            $this->emit("handshake", array($handshakeRequest));
+
+            if($handshakeRequest->isAborted())
+                $this->close();
+            else {
+                $this->_socket->write($response->toString());
+                $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
+
+                $this->emit("connect");
+            }
+        } catch(Exception $e){
+            $this->logger->err("Connection error, message: ".$e->getMessage());
             $this->close();
-        else {
-            $this->_socket->write($response->toString());
-            $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
-
-            $this->emit("connect");
         }
     }
 

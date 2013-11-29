@@ -73,13 +73,13 @@ class WebSocketFrame implements WebSocketFrameInterface
 
     protected static function rotMask($data, $key, $offset = 0)
     {
-        $res = '';
-        for ($i = 0; $i < strlen($data); $i++) {
-            $j = ($i + $offset) % 4;
-            $res .= chr(ord($data[$i]) ^ ord($key[$j]));
-        }
+        // Rotate key for example if $offset=1 and $key=abcd then output will be bcda
+        $rotated_key = substr($key, $offset) . substr($key, 0, $offset);
 
-        return $res;
+        // Repeat key until it is at least the size of the $data
+        $key_pad = str_repeat($rotated_key, ceil(1.0*strlen($data) / strlen($key)));
+
+        return $data ^ substr($key_pad, 0, strlen($data));
     }
 
     public function getType()

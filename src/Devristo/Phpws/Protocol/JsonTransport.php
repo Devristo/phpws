@@ -69,7 +69,7 @@ class JsonTransport extends EventEmitter implements TransportInterface{
     }
 
 
-    public function onData($string)
+    public function handleData($string)
     {
         try{
             $jsonMessage = JsonMessage::fromJson($string);

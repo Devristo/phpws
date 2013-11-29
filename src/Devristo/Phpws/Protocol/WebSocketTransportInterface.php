@@ -19,9 +19,11 @@ interface WebSocketTransportInterface extends TransportInterface
 
     public function respondTo(Request $request);
 
-    public function setRole($role);
+    public function getHandshakeRequest();
 
-    public function onData($data);
+    public function getHandshakeResponse();
+
+    public function handleData($data);
 
     public function sendString($msg);
 

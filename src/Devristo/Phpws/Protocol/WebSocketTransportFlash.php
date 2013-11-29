@@ -35,7 +35,7 @@ class WebSocketTransportFlash extends WebSocketTransport
         throw new Exception("Not supported!");
     }
 
-    public function onData($data)
+    public function handleData($data)
     {
         throw new Exception("Not supported!");
     }

@@ -77,11 +77,6 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
         return $this->response;
     }
 
-    public function setRole($role)
-    {
-        $this->_role = $role;
-    }
-
     public function getSocket()
     {
         return $this->_socket;

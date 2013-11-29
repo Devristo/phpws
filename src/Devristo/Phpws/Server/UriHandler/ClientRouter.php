@@ -17,7 +17,7 @@ use Zend\Log\LoggerInterface;
 class ClientRouter {
     protected $handlers = array();
     protected $membership;
-    public function __construct(WebSocketServer $server, LoggerInterface $logger){
+    public function __construct($server, LoggerInterface $logger){
         $this->server = $server;
 
         $this->membership = new \SplObjectStorage();
@@ -28,6 +28,7 @@ class ClientRouter {
         $membership = $this->membership;
 
         $that = $this;
+
         $server->on("connect", function(WebSocketTransportInterface $client) use ($that, $logger, $membership){
             $handler = $that->matchConnection($client);
 
@@ -37,7 +38,7 @@ class ClientRouter {
                 $handler->emit("connect", array("client" => $client));
                 $handler->addConnection($client);
             }else
-                $logger->err("Cannot route {$client->getId()} with request uri {$client->getUriRequested()}");
+                $logger->err("Cannot route {$client->getId()} with request uri {$client->getHandshakeRequest()->getUriString()}");
         });
 
         $server->on('disconnect', function(WebSocketTransportInterface $client) use($that, $logger, $membership){
@@ -67,10 +68,10 @@ class ClientRouter {
     }
 
     /**
-     * @param WebSocketTransport $client
+     * @param \Devristo\Phpws\Protocol\WebSocketTransport|\Devristo\Phpws\Protocol\WebSocketTransportInterface $client
      * @return null|WebSocketUriHandlerInterface
      */
-    public function matchConnection(WebSocketTransport $client){
+    public function matchConnection(WebSocketTransportInterface $client){
         foreach($this->handlers as $key => $value ){
             if(preg_match($key,$client->getHandshakeRequest()->getUriString()))
                 return $value;

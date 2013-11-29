@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Rooms</title>
+    <title>Protocol stacking</title>
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 </head>
 <body>
@@ -11,7 +11,7 @@
 
 <script>
     var log = document.getElementById("log");
-    var socket = new WebSocket("ws://localhost:12345/");
+    var socket = new WebSocket("ws://localhost:12345/stack");
     socket.onopen = function(){
         log.innerText += "Connected\n";
     };

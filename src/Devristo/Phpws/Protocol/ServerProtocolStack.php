@@ -40,14 +40,14 @@ class ServerProtocolStack extends EventEmitter
             return $transport;
         };
 
-        $server->on("connect", function(WebSocketTransportInterface $user) use($that, $stackSpecs, $server, &$ws2stack, $instantiator){
-            $carrier = $user;
+        $server->on("connect", function(WebSocketTransportInterface $webSocketTransport) use($that, $stackSpecs, $server, &$ws2stack, $instantiator){
+            $carrier = $webSocketTransport;
             $first = null;
 
             /**
              * @var $stack TransportInterface[]
              */
-            $stack = array();
+            $stack = array($carrier);
 
             // Instantiate transports
             $i = 0;
@@ -59,26 +59,23 @@ class ServerProtocolStack extends EventEmitter
                 $i++;
             }while($i < count($stackSpecs));
 
-            $first = $stack[0];
+            $first = $stack[1];
             $last = $stack[count($stack) - 1];
 
             // Remember the stack for this websocket connection, used to trigger disconnect event
-            $stackCollection = new ConnectionProtocolStack($stack);
-            $ws2stack[$user->getId()] = $stackCollection;
+            $stackCollection = new StackTransport($stack);
+            $ws2stack[$webSocketTransport->getId()] = $stackCollection;
 
-            // Link the first in the stack directly to the WebSocket server
-            $server->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
-                $first->onData($message->getData());
-            });
-
+            // Link the message event to the next data event
             for($i=0; $i<count($stack)-1; $i++){
-                $stack[$i]->on("message", function (TransportInterface $interface, MessageInterface $message) use ($first) {
-                    $first->onData($message->getData());
+                $next = $stack[$i+1];
+                $stack[$i]->on("message", function (MessageInterface $message) use ($next) {
+                    $next->handleData($message->getData());
                 });
             }
 
             // When the last protocol produces a message, emit it on our ProtocolStack
-            $last->on("message", function (TransportInterface $interface, MessageInterface $message) use ($that, $stackCollection) {
+            $last->on("message", function (MessageInterface $message) use ($that, $stackCollection) {
                 $that->emit("message", array($stackCollection, $message));
             });
 

@@ -96,7 +96,7 @@ class WebSocketTransportHixie extends WebSocketTransport
     }
 
 
-    public function onData($data)
+    public function handleData($data)
     {
         $f = WebSocketFrame76::decode($data);
         $message = WebSocketMessage76::fromFrame($f);

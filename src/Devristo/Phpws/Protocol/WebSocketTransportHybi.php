@@ -74,7 +74,7 @@ class WebSocketTransportHybi extends WebSocketTransport
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
     }
 
-    public function onData($data)
+    public function handleData($data)
     {
         $frames = array();
         while (!empty($data)) {

@@ -9,7 +9,10 @@
 namespace Devristo\Phpws\Protocol;
 
 
-class ConnectionProtocolStack implements \ArrayAccess{
+use Zend\Http\Request;
+use Zend\Http\Response;
+
+class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
     protected $stack;
 
     public function __construct(array &$stack){
@@ -19,10 +22,16 @@ class ConnectionProtocolStack implements \ArrayAccess{
         $this->stack = $stack;
     }
 
+    /**
+     * @return WebSocketTransportInterface
+     */
     public function getWebSocketTransport(){
         return $this->stack[0];
     }
 
+    /**
+     * @return TransportInterface
+     */
     public function getTopTransport(){
         return $this->stack[count($this->stack) - 1];
     }
@@ -87,5 +96,81 @@ class ConnectionProtocolStack implements \ArrayAccess{
     public function offsetUnset($offset)
     {
         throw new \BadMethodCallException("Immutable stack, cannot set element");
+    }
+
+    public function on($event, $listener)
+    {
+        return $this->getWebSocketTransport()->on($event, $listener);
+    }
+
+    public function once($event, $listener)
+    {
+        return $this->getWebSocketTransport()->once($event, $listener);
+    }
+
+    public function removeListener($event, $listener)
+    {
+        return $this->getWebSocketTransport()->removeListener($event, $listener);
+    }
+
+    public function removeAllListeners($event = null)
+    {
+        return $this->getWebSocketTransport()->removeAllListeners($event);
+    }
+
+    public function listeners($event)
+    {
+        return $this->getWebSocketTransport()->listeners($event);
+    }
+
+    public function emit($event, array $arguments = array())
+    {
+        return $this->getWebSocketTransport()->emit($event, $arguments);
+    }
+
+    public function getId()
+    {
+        return $this->getWebSocketTransport()->getId();
+    }
+
+    public function respondTo(Request $request)
+    {
+        throw new \BadMethodCallException();
+    }
+
+    public function handleData($data)
+    {
+        throw new \BadMethodCallException();
+    }
+
+    public function sendString($msg)
+    {
+        $this->getTopTransport()->sendString($msg);
+    }
+
+    public function getIp()
+    {
+        $this->getWebSocketTransport()->getIp();
+    }
+
+    public function close()
+    {
+        $this->getWebSocketTransport()->close();
+    }
+
+    /**
+     * @return Request
+     */
+    public function getHandshakeRequest()
+    {
+        return $this->getWebSocketTransport()->getHandshakeRequest();
+    }
+
+    /**
+     * @return Response
+     */
+    public function getHandshakeResponse()
+    {
+        return $this->getWebSocketTransport()->getHandshakeResponse();
     }
 }

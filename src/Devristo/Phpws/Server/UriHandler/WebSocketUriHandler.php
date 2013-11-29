@@ -65,6 +65,9 @@ abstract class WebSocketUriHandler extends EventEmitter implements WebSocketUriH
 
     }
 
+    /**
+     * @return \Devristo\Phpws\Protocol\WebSocketTransportInterface[]|SplObjectStorage
+     */
     public function getConnections()
     {
         return $this->users;

@@ -47,7 +47,7 @@ class WebSocketConnection extends Connection
             $this->_lastChanged = time();
 
             if ($this->_transport)
-                $this->_transport->onData($data);
+                $this->_transport->handleData($data);
             else
                 $this->establishConnection($data);
         } catch (Exception $e) {

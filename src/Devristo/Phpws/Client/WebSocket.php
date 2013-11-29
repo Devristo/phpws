@@ -128,7 +128,7 @@ class WebSocket extends EventEmitter
                 $this->emit("connected", array("headers" => $headers));
                 break;
             case (self::STATE_CONNECTED):
-                $this->_connection->onData($data);
+                $this->_connection->handleData($data);
         }
     }
 

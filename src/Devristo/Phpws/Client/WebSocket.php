@@ -14,6 +14,8 @@ use Devristo\Phpws\Protocol\WebSocketConnection;
 use Evenement\EventEmitter;
 use React\EventLoop\LoopInterface;
 use React\Stream\Stream;
+use Zend\Http\Request;
+use Zend\Http\Response;
 
 class WebSocket extends EventEmitter
 {
@@ -36,6 +38,9 @@ class WebSocket extends EventEmitter
     protected $stream;
     protected $socket;
 
+
+    protected $request;
+    protected $response;
 
     /**
      * @var WebSocketTransport
@@ -97,38 +102,32 @@ class WebSocket extends EventEmitter
     {
         $challenge = self::randHybiKey();
 
-        $this->addHeader("Connection","Upgrade");
-        $this->addHeader("Host","{$this->host}");
-        $this->addHeader("Sec-WebSocket-Key",$challenge);
-        $this->addHeader("Origin","{$this->origin}");
-        $this->addHeader("Sec-WebSocket-Version",13);
-        $this->addHeader("Upgrade","websocket");
+        $this->request = new Request();
 
-        $strHandshake = "GET {$this->requestUri} HTTP/1.1\r\n";
+        $this->request->setUri($this->requestUri);
 
-        foreach ($this->headers as $k => $v) {
-            $strHandshake .= $k . " " . $v . "\r\n";
-        }
+        $this->request->getHeaders()->addHeaderLine("Connection", "Upgrade");
+        $this->request->getHeaders()->addHeaderLine("Host", "{$this->host}");
+        $this->request->getHeaders()->addHeaderLine("Sec-WebSocket-Key", $challenge);
+        $this->request->getHeaders()->addHeaderLine("Origin", "{$this->origin}");
+        $this->request->getHeaders()->addHeaderLine("Sec-WebSocket-Version", 13);
+        $this->request->getHeaders()->addHeaderLine("Upgrade", "websocket");
 
-        $strHandshake .= "\r\n";
-        $this->stream->write($strHandshake);
+        $this->stream->write($this->request->toString());
     }
 
     public function onData($data)
     {
-        switch ($this->state) {
-            case (self::STATE_HANDSHAKE_SENT):
-                $headers = WebSocketTransportFactory::parseHeaders($data);
-                $this->_connection = new WebSocketTransportHybi($this->stream, $headers);
-                $myself = $this;
-                $this->_connection->on("message", function($message) use ($myself){
-                    $myself->emit("message", array("message" => $message));
-                });
-                $this->state = self::STATE_CONNECTED;
-                $this->emit("connected", array("headers" => $headers));
-                break;
-            case (self::STATE_CONNECTED):
-                $this->_connection->handleData($data);
+        if ($this->state == self::STATE_HANDSHAKE_SENT) {
+            $response = Response::fromString($data);
+            $this->_connection = new WebSocketTransportHybi($this->stream);
+            $this->_connection->setLogger($this->logger);
+            $myself = $this;
+            $this->_connection->on("message", function ($message) use ($myself) {
+                $myself->emit("message", array("message" => $message));
+            });
+            $this->state = self::STATE_CONNECTED;
+            $this->emit("connected", array("response" => $response));
         }
     }
 
@@ -144,7 +143,7 @@ class WebSocket extends EventEmitter
 
         $stream->on('data', array($this, 'onData'));
 
-        $stream->on('message', function($message) use($that){
+        $stream->on('message', function ($message) use ($that) {
             $that->emit("message", array("message" => $message));
         });
 
@@ -178,7 +177,7 @@ class WebSocket extends EventEmitter
 
     public function close()
     {
-        if($this->isClosing)
+        if ($this->isClosing)
             return;
 
         $this->isClosing = true;
@@ -187,13 +186,13 @@ class WebSocket extends EventEmitter
         $this->state = self::STATE_CLOSING;
         $stream = $this->stream;
 
-        $closeTimer = $this->loop->addTimer(5, function() use ($stream){
+        $closeTimer = $this->loop->addTimer(5, function () use ($stream) {
             $stream->close();
         });
 
         $loop = $this->loop;
-        $stream->once("close", function() use ($closeTimer, $loop){
-            if($closeTimer)
+        $stream->once("close", function () use ($closeTimer, $loop) {
+            if ($closeTimer)
                 $loop->cancelTimer($closeTimer);
         });
     }

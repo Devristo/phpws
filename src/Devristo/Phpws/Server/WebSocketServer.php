@@ -10,6 +10,7 @@ use Exception;
 use React\EventLoop\LoopInterface;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
+use Zend\Uri\Uri;
 
 /**
  * WebSocketServer
@@ -57,11 +58,22 @@ class WebSocketServer extends EventEmitter
      *
      * @param $url
      * @param \React\EventLoop\LoopInterface $loop
-     * @param null|\Zend\Log\LoggerInterface $logger
+     * @param \Zend\Log\LoggerInterface $logger
+     * @throws \InvalidArgumentException
      */
     public function __construct($url, LoopInterface $loop, LoggerInterface $logger)
     {
-        $this->_url = $url;
+        $uri = new Uri($url);
+
+        if($uri->getScheme() == 'ws')
+            $uri->setScheme('tcp');
+        elseif($uri->getScheme() == 'wss')
+            $uri->setScheme('ssl');
+
+        if($uri->getScheme() != 'tcp' && $uri->getScheme() != 'ssl')
+            throw new \InvalidArgumentException("Uri scheme must be one of: tcp, ssl, ws, wss");
+
+        $this->uri = $uri;
 
         $this->loop = $loop;
         $this->_streams = new SplObjectStorage();
@@ -89,12 +101,11 @@ class WebSocketServer extends EventEmitter
 
         $err = $errno = 0;
 
-        $port = parse_url($this->_url, PHP_URL_PORT);
-        $this->FLASH_POLICY_FILE = str_replace('to-ports="*', 'to-ports="' . $port, $this->FLASH_POLICY_FILE);
+        $this->FLASH_POLICY_FILE = str_replace('to-ports="*', 'to-ports="' . $this->uri->getPort() ?: 80, $this->FLASH_POLICY_FILE);
 
-        $serverSocket = stream_socket_server($this->_url, $errno, $err, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $this->_context);
+        $serverSocket = stream_socket_server($this->uri->toString(), $errno, $err, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $this->_context);
 
-        $this->_logger->notice(sprintf("phpws listening on %s", $this->_url));
+        $this->_logger->notice(sprintf("phpws listening on %s", $this->uri->toString()));
 
         if ($serverSocket == false) {
             $this->_logger->err("Error: $err");

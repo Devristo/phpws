@@ -7,15 +7,17 @@ use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
+use Devristo\Phpws\Protocol\Handshake;
 use Devristo\Phpws\Protocol\WebSocketTransport;
-use Devristo\Phpws\Protocol\WebSocketTransportFactory;
 use Devristo\Phpws\Protocol\WebSocketTransportHybi;
 use Devristo\Phpws\Protocol\WebSocketConnection;
+use Devristo\Phpws\Reflection\FullAccessWrapper;
 use Evenement\EventEmitter;
 use React\EventLoop\LoopInterface;
-use React\Stream\Stream;
+use React\Promise\Deferred;
 use Zend\Http\Request;
 use Zend\Http\Response;
+use Zend\Uri\Uri;
 
 class WebSocket extends EventEmitter
 {
@@ -26,11 +28,7 @@ class WebSocket extends EventEmitter
 
     protected $state = self::STATE_CLOSED;
 
-    protected $host;
-    protected $port;
-    protected $requestUri;
     protected $url;
-    protected $_timeOut = 1;
 
     /**
      * @var WebSocketConnection
@@ -45,7 +43,7 @@ class WebSocket extends EventEmitter
     /**
      * @var WebSocketTransport
      */
-    protected $_connection = null;
+    protected $transport = null;
 
     protected $headers;
     protected $loop;
@@ -63,116 +61,96 @@ class WebSocket extends EventEmitter
         if (in_array($parts['scheme'], array('ws', 'wss')) === false)
             throw new WebSocketInvalidUrlScheme();
 
-        $this->scheme = $parts['scheme'];
-
-        $this->host = $parts['host'];
-        $this->port = array_key_exists('port', $parts) ? $parts['port'] : 80;
-        $this->path = array_key_exists('path', $parts) ? $parts['path'] : '/';
-        $this->query = array_key_exists("query", $parts) ? $parts['query'] : null;
-
-        if (array_key_exists('query', $parts))
-            $this->path .= "?" . $parts['query'];
-
-        $this->origin = 'http://' . $this->host;
-
-        if (isset($parts['path']))
-            $this->requestUri = $parts['path'];
-        else
-            $this->requestUri = "/";
-
-        if (isset($parts['query']))
-            $this->requestUri .= "?" . $parts['query'];
-
-
+        $dnsResolverFactory = new \React\Dns\Resolver\Factory();
+        $this->dns = $dnsResolverFactory->createCached('8.8.8.8', $loop);
     }
 
 
-    private static function randHybiKey()
+    public function open($timeOut=null)
     {
-        return base64_encode(
-            chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
-            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
-            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
-            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
-        );
-    }
+        /**
+         * @var $that self
+         */
+        $that = new FullAccessWrapper($this);
 
+        $uri = new Uri($this->url);
 
-    protected function sendHandshake()
-    {
-        $challenge = self::randHybiKey();
-
-        $this->request = new Request();
-
-        $this->request->setUri($this->requestUri);
-
-        $this->request->getHeaders()->addHeaderLine("Connection", "Upgrade");
-        $this->request->getHeaders()->addHeaderLine("Host", "{$this->host}");
-        $this->request->getHeaders()->addHeaderLine("Sec-WebSocket-Key", $challenge);
-        $this->request->getHeaders()->addHeaderLine("Origin", "{$this->origin}");
-        $this->request->getHeaders()->addHeaderLine("Sec-WebSocket-Version", 13);
-        $this->request->getHeaders()->addHeaderLine("Upgrade", "websocket");
-
-        $this->stream->write($this->request->toString());
-    }
-
-    public function onData($data)
-    {
-        if ($this->state == self::STATE_HANDSHAKE_SENT) {
-            $response = Response::fromString($data);
-            $this->_connection = new WebSocketTransportHybi($this->stream);
-            $this->_connection->setLogger($this->logger);
-            $myself = $this;
-            $this->_connection->on("message", function ($message) use ($myself) {
-                $myself->emit("message", array("message" => $message));
-            });
-            $this->state = self::STATE_CONNECTED;
-            $this->emit("connected", array("response" => $response));
+        if($uri->getScheme() == 'ws'){
+            $connector = new \React\SocketClient\Connector($this->loop, $this->dns);
+        } else{
+            $connector = new \React\SocketClient\SecureConnector($this->loop, $this->dns);
         }
-    }
 
-    public function open()
-    {
-        $errorNumber = $errorString = null;
-        $that = $this;
+        $promise = new Deferred();
 
-        $protocol = $this->scheme == 'ws' ? "tcp" : "ssl";
+        $connector->create($uri->getHost(), $uri->getPort() ?: 80)
+            ->then(function (\React\Stream\Stream $stream) use ($that, $uri, $promise,$timeOut){
 
-        $this->socket = stream_socket_client("$protocol://{$this->host}:{$this->port}", $errorNumber, $errorString, $this->getTimeOut());
-        $stream = new Stream($this->socket, $this->loop);
+                if($timeOut){
+                    $timeOutTimer = $that->loop->addTimer($timeOut, function() use($promise, $stream, $that){
+                        $stream->close();
+                        $that->logger->notice("Timeout occured, closing connection");
+                        $that->emit("error");
+                        $promise->reject("Timeout occured");
+                    });
+                } else $timeOutTimer = null;
 
-        $stream->on('data', array($this, 'onData'));
+                $transport = new WebSocketTransportHybi($stream);
+                $transport->setLogger($that->logger);
+                $that->transport = $transport;
+                $that->stream = $stream;
 
-        $stream->on('message', function ($message) use ($that) {
-            $that->emit("message", array("message" => $message));
-        });
+                $stream->on("close", function() use($that){
+                    $that->state = WebSocket::STATE_CLOSED;
+                });
 
-        $this->stream = $stream;
+                // Give the chance to change request
+                $transport->on("request", function(Request $handshake) use($that){
+                    $that->emit("request", func_get_args());
+                });
 
-        $this->sendHandshake();
-        $this->state = self::STATE_HANDSHAKE_SENT;
+                $transport->on("handshake", function(Handshake $handshake) use($that){
+                    $that->request = $handshake->getRequest();
+                    $that->response = $handshake->getRequest();
 
-        return $this;
-    }
+                    $that->emit("handshake", array($handshake));
+                });
 
-    public function addHeader($key, $value)
-    {
-        $this->headers[$key . ":"] = $value;
+                $transport->on("connect", function() use(&$state, $that, $transport, $timeOutTimer, $promise){
+                    if($timeOutTimer)
+                        $timeOutTimer->cancel();
+
+                    $promise->resolve($transport);
+                    $that->state = WebSocket::STATE_CONNECTED;
+                    $that->emit("connect");
+
+                });
+
+                $transport->on('message', function ($message) use ($that, $transport) {
+                    $that->emit("message", array("message" => $message));
+                });
+
+                $transport->initiateHandshake($uri);
+                $that->state = WebSocket::STATE_HANDSHAKE_SENT;
+            });
+
+        return $promise;
+
     }
 
     public function send($string)
     {
-        $this->_connection->sendString($string);
+        $this->transport->sendString($string);
     }
 
     public function sendMessage(WebSocketMessageInterface $msg)
     {
-        $this->_connection->sendMessage($msg);
+        $this->transport->sendMessage($msg);
     }
 
     public function sendFrame(WebSocketFrameInterface $frame)
     {
-        $this->_connection->sendFrame($frame);
+        $this->transport->sendFrame($frame);
     }
 
     public function close()
@@ -195,15 +173,5 @@ class WebSocket extends EventEmitter
             if ($closeTimer)
                 $loop->cancelTimer($closeTimer);
         });
-    }
-
-    public function getTimeOut()
-    {
-        return $this->_timeOut;
-    }
-
-    public function setTimeOut($seconds)
-    {
-        $this->_timeOut = $seconds;
     }
 }

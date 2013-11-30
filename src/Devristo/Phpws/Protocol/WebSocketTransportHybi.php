@@ -12,11 +12,11 @@ use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessage;
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Exception;
 use Zend\Http\Headers;
 use Zend\Http\Request;
 use Zend\Http\Response;
+use Zend\Uri\Uri;
 
 class WebSocketTransportHybi extends WebSocketTransport
 {
@@ -30,6 +30,8 @@ class WebSocketTransportHybi extends WebSocketTransport
      * @var WebSocketFrame
      */
     private $lastFrame = null;
+
+    protected $connected = false;
 
     public function respondTo(Request $request){
         $this->request = $request;
@@ -71,6 +73,7 @@ class WebSocketTransportHybi extends WebSocketTransport
                 $this->_socket->write($response->toString());
                 $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
 
+                $this->connected = true;
                 $this->emit("connect");
             }
         } catch(Exception $e){
@@ -86,6 +89,9 @@ class WebSocketTransportHybi extends WebSocketTransport
 
     public function handleData($data)
     {
+        if(!$this->connected)
+            $data = $this->readHandshakeResponse($data);
+
         $frames = array();
         while (!empty($data)) {
             $frame = WebSocketFrame::decode($data, $this->lastFrame);
@@ -188,6 +194,64 @@ class WebSocketTransportHybi extends WebSocketTransport
         $this->sendFrame($f);
 
         $this->_socket->close();
+    }
+
+    private static function randHybiKey()
+    {
+        return base64_encode(
+            chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
+            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
+            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
+            . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255)) . chr(rand(0, 255))
+        );
+    }
+
+    public function initiateHandshake(Uri $uri)
+    {
+        $challenge = self::randHybiKey();
+
+        $request = new Request();
+
+        $requestUri = $uri->getPath();
+
+        if($uri->getQuery())
+            $requestUri .= "?".$uri->getQuery();
+
+        $request->setUri($requestUri);
+
+        $request->getHeaders()->addHeaderLine("Connection", "Upgrade");
+        $request->getHeaders()->addHeaderLine("Host", $uri->getHost());
+        $request->getHeaders()->addHeaderLine("Sec-WebSocket-Key", $challenge);
+        $request->getHeaders()->addHeaderLine("Sec-WebSocket-Version", 13);
+        $request->getHeaders()->addHeaderLine("Upgrade", "websocket");
+
+        $this->setRequest($request);
+
+        $this->emit("request", array($request));
+
+        $this->_socket->write($request->toString());
+
+        return $request;
+    }
+
+    private function readHandshakeResponse($data)
+    {
+        $response = Response::fromString($data);
+        $this->setResponse($response);
+
+        $handshake = new Handshake($this->request, $response);
+
+        $this->emit("handshake", array($handshake));
+
+        if($handshake->isAborted()){
+            $this->close();
+            return '';
+        }
+
+        $this->connected = true;
+        $this->emit("connect");
+
+        return $response->getContent();
     }
 
 }

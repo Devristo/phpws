@@ -214,4 +214,12 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
     {
         return $this->getWebSocketTransport()->getHandshakeResponse();
     }
+
+    public function setData($key, $value){
+        $this->getWebSocketTransport()->setData($key, $value);
+    }
+
+    public function getData($key){
+        return $this->getWebSocketTransport()->getData($key);
+    }
 }

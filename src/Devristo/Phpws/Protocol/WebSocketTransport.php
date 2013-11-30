@@ -45,6 +45,8 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
 
     protected $_eventManger;
 
+    protected $data = array();
+
     public function __construct(WritableStreamInterface $socket)
     {
         $this->_socket = $socket;
@@ -108,5 +110,13 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
         }
 
         return true;
+    }
+
+    public function setData($key, $value){
+        $this->data[$key] = $value;
+    }
+
+    public function getData($key){
+        return $this->data[$key];
     }
 }

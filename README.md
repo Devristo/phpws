@@ -29,7 +29,7 @@ The easiest way to set up PHPWS is by using it as Composer dependency. Add the f
         }
     ],
     "require": {
-        "devristo/phpws": "dev-react"
+        "devristo/phpws": "dev-master"
     }
 }
 ```

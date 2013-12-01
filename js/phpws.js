@@ -5,28 +5,57 @@
 !function($){
     var Client = function(url){
         var self = this;
-        var ws = new WebSocket(url);
+        var ws = null;
         var openPromise = $.Deferred();
+        var callbacks = {};
 
-        ws.addEventListener('open', function(){
-            openPromise.resolveWith(self);
-        });
+        var triggerEvent = function(event){
+            if(event in callbacks){
+                callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
+            }
 
-        ws.addEventListener('error', function(){
-            openPromise.rejectWith(self);
-        });
-
-        this.unsubscribe = function(){
-            ws.removeEventListener.apply(ws, arguments);
             return this;
         };
 
-        this.on = function(){
-            ws.addEventListener.apply(ws, arguments);
+
+        this.on = function(event, callback){
+            if(!(event in callbacks))
+                callbacks[event] = $.Callbacks();
+
+            callbacks[event].add.apply(callbacks[event], Array.prototype.slice.call(arguments, 1));
             return this;
         };
 
-        this.open = function(){
+        this.unsubscribe = function(event, callback){
+            if(event in callbacks){
+                callbacks[event].remove.apply(callbacks[event], Array.prototype.slice.call(arguments, 1));
+            }
+
+            return this;
+        };
+
+        this.connect = function(url){
+            ws = new WebSocket(url);
+
+            ws.addEventListener('open', function(){
+                openPromise.resolveWith(self);
+                triggerEvent("open", arguments);
+            });
+
+            ws.addEventListener('close', function(){
+                openPromise.resolveWith(self);
+                triggerEvent("close", arguments);
+            });
+
+            ws.addEventListener('error', function(){
+                openPromise.rejectWith(self);
+                triggerEvent("error", arguments);
+            });
+
+            ws.addEventListener('message', function(event){
+                triggerEvent("message", event.data);
+            });
+
             return openPromise;
         };
 
@@ -39,26 +68,10 @@
         }
     };
 
-    var JsonMessage = function(sender, tag, data){
-        this.getData = function () {
-            return data;
-        };
-
-        this.reply = function(data){
-            var msg = {
-                tag: tag,
-                data: data
-            };
-
-            sender(msg);
-        };
-    };
-
     var JsonTransport = function(phpws){
         var self = this;
         var callbacks = {};
         var previousTag = 0;
-
         var generateTag = function(){
             previousTag += 1;
 
@@ -69,11 +82,33 @@
             phpws.send(JSON.stringify(obj));
         };
 
-        phpws.on("message", function(message){
-            var messageObj = JSON.parse(message.data);
-            var jsonMessage = new JsonMessage(sendObj, messageObj.tag, messageObj.data);
+        var triggerEvent = function(event){
+            if(event in callbacks){
+                callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
+            }
 
-            self.emit("message", jsonMessage);
+            return this;
+        };
+
+        var addReply = function(obj){
+            obj.reply = function(data){
+                var msg = {
+                    tag: obj.tag,
+                    data: obj.data,
+                    event: obj.event,
+                    room: obj.room
+                };
+
+                sendObj(msg);
+            };
+        };
+
+        phpws.on("message", function(message){
+            var messageObj = JSON.parse(message);
+            addReply(messageObj);
+
+
+            triggerEvent(messageObj.event, messageObj);
         });
 
         this.on = function(event, callback){
@@ -92,18 +127,12 @@
             return this;
         };
 
-        this.emit = function(event){
-            if(event in callbacks){
-                callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
-            }
-
-            return this;
-        };
-
-        this.send = function(data){
+        this.emit = function(room, event, args){
             var msg = {
+                room: room,
                 tag: generateTag(),
-                data: data
+                event: event,
+                data: args
             };
 
             sendObj(msg);
@@ -112,7 +141,7 @@
 
     window.Phpws = {
         Client: Client,
-        JsonTransport: JsonTransport
+        RemoteEvents: JsonTransport
     };
 
 }(window.jQuery);

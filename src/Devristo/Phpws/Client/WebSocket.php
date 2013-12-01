@@ -17,6 +17,7 @@ use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 use Zend\Http\Request;
 use Zend\Http\Response;
+use Zend\Log\LoggerInterface;
 use Zend\Uri\Uri;
 
 class WebSocket extends EventEmitter
@@ -48,9 +49,11 @@ class WebSocket extends EventEmitter
     protected $headers;
     protected $loop;
 
+    protected $logger;
+
     protected $isClosing = false;
 
-    public function __construct($url, LoopInterface $loop, $logger)
+    public function __construct($url, LoopInterface $loop, LoggerInterface $logger)
     {
         $this->logger = $logger;
         $this->loop = $loop;
@@ -132,6 +135,9 @@ class WebSocket extends EventEmitter
 
                 $transport->initiateHandshake($uri);
                 $that->state = WebSocket::STATE_HANDSHAKE_SENT;
+            }, function($reason) use ($that)
+            {
+                $that->logger->err($reason);
             });
 
         return $promise;

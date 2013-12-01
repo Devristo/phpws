@@ -57,6 +57,10 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
         $socket->on("data", function($data) use ($that){
             $that->handleData($data);
         });
+
+        $socket->on("close", function($data) use ($that){
+            $that->emit("close", func_get_args());
+        });
     }
 
     public function getIp()

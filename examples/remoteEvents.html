@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Protocol stacking</title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="../js/phpws.js"></script>
+</head>
+<body>
+
+<h1>Remote Events</h1>
+<pre id="log"></pre>
+
+<script>
+    var log = document.getElementById("log");
+
+    var socket = new Phpws.Client();
+    var remoteEvents = new Phpws.RemoteEvents(socket);
+
+    remoteEvents.on("greeting", function(jsonMessage){
+        log.innerText += "Got message '" + jsonMessage.data + "'. Will send reply now before closing!\n";
+        jsonMessage.reply("Hello to you too!");
+        remoteEvents.emit("greeting", "Hello sir, we can trigger a greeting event as well!");
+        socket.close();
+    });
+
+    socket.connect("ws://localhost:12345/stack").then(function(){
+        log.innerText += "Connected\n";
+    });
+
+    socket.on("close", function(){
+        log.innerText += "Closed\n";
+    });
+
+
+
+
+</script>
+</body>
+</html>

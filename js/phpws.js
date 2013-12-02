@@ -128,7 +128,7 @@
     };
 
     Room.prototype.emit = function(event, data){
-        this.transport.emit(name, event, data);
+        this.transport.emit(this.name, event, data);
         return this;
     };
 

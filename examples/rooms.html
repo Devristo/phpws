@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rooms</title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="../js/phpws.js"></script>
+
+</head>
+<body>
+<h1>Server Time</h1>
+
+<button id="subscribe">Subscribe to server time room</button>
+
+<strong id="time"></strong>
+
+
+<script>
+    var client = new Phpws.Client();
+    var remoteEvents = new Phpws.RemoteEvents(client);
+
+    client.connect("ws://localhost:12345/");
+
+
+    $("#subscribe").on('click', function(e){
+        e.preventDefault();
+        remoteEvents.room("time").subscribe().on("time", function(event){
+            $("#time").text(event.data);
+        });
+    });
+</script>
+
+</body>
+</html>

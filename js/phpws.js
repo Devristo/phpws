@@ -3,45 +3,47 @@
  */
 
 !function($){
-    var Emitter = function(){
-        var callbacks = {};
+    function Emitter() {
+        this.callbacks = {};
+    }
 
-        this.on = function(event, callback){
-            if(!(event in callbacks))
-                callbacks[event] = $.Callbacks();
+    Emitter.prototype.on = function(event, callback){
+        if(!(event in this.callbacks))
+            this.callbacks[event] = $.Callbacks();
 
-            callbacks[event].add(callback);
-            return this;
-        };
-
-        this.removeListener = function(event, callback){
-            if(event in callbacks){
-                callbacks[event].remove.apply(callbacks[event], Array.prototype.slice.call(arguments, 1));
-            }
-
-            return this;
-        };
-
-        this.once = function(event, callback){
-            var self = this;
-            var _once = function(){
-                callback();
-                self.removeListener(event, arguments.callee);
-            };
-
-            return this.on(event, _once);
-        };
-
-        this.trigger = function(event, data){
-            if(event in callbacks){
-                callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
-            }
-
-            return this;
-        };
+        this.callbacks[event].add(callback);
+        return this;
     };
 
-    var Client = function(){
+    Emitter.prototype.removeListener = function(event, callback){
+        if(event in this.callbacks){
+            this.callbacks[event].remove.apply(this.callbacks[event], Array.prototype.slice.call(arguments, 1));
+        }
+
+        return this;
+    };
+
+    Emitter.prototype.once = function(event, callback){
+        var self = this;
+        var _once = function(){
+            callback();
+            self.removeListener(event, arguments.callee);
+        };
+
+        return this.on(event, _once);
+    };
+
+    Emitter.prototype.trigger = function(event, data){
+        if(event in this.callbacks){
+            this.callbacks[event].fireWith(this, Array.prototype.slice.call(arguments, 1));
+        }
+
+        return this;
+    };
+
+    function Client(){
+        Emitter.apply(this, arguments);
+
         var self = this;
         var ws = null;
         var openPromise = $.Deferred();
@@ -73,7 +75,7 @@
             if(autoReconnect && !reconnectTimer){
                 reconnectTimer = setInterval(
                     function(){
-                        if(!ws.readyState == WebSocket.OPEN)
+                        if(ws.readyState != WebSocket.OPEN)
                             self.connect(url);
                     },
                     5000
@@ -100,40 +102,50 @@
         }
     };
 
-    Client.prototype = new Emitter();
+    Client.prototype = new Emitter;
+    Client.prototype.constructor = Client;
 
-    var Room = function(client, transport, name){
-        var subscribed = false;
+    function Room (client, transport, name){
+        Emitter.apply(this, arguments);
 
-        this.on = function(event, callback){
-            // Subscribe if we haven't done that yet
-            if(!subscribed){
-                throw Error("Not subscribed to room " + name);
-            }
+        this.subscribed = true;
+        this.name = name;
+        this.transport = transport;
+        this.client = client;
+    }
 
-            this.constructor.prototype.on.apply(this, arguments);
-            return this;
-        };
+    Room.prototype = new Emitter;
+    Room.prototype.constructor = Room;
 
-        this.emit = function(event, data){
-            transport.emit(name, event, data);
-            return this;
-        };
+    Room.prototype.on = function(event, callback){
+        // Subscribe if we haven't done that yet
+        if(!this.subscribed){
+            throw Error("Not subscribed to room " + this.name);
+        }
 
-        this.subscribe = function(){
-            client.whenConnected(function(){
-                console.log("Subscribing to room " + name);
-                transport.emit(name, "subscribe");
-                subscribed = true;
-            });
-
-            return this;
-        };
+        Emitter.prototype.on.apply(this, arguments);
+        return this;
     };
 
-    Room.prototype = new Emitter();
+    Room.prototype.emit = function(event, data){
+        this.transport.emit(name, event, data);
+        return this;
+    };
 
-    var EventTransport = function(phpws){
+    Room.prototype.subscribe = function(){
+        var self = this;
+        this.subscribed = true;
+        this.client.whenConnected(function(){
+            console.log("Subscribing to room " + self.name);
+            self.transport.emit(self.name, "subscribe");
+        });
+
+        return this;
+    };
+
+    function EventTransport (client){
+        Emitter.apply(this, arguments);
+
         var self = this;
         var rooms = {};
         var previousTag = 0;
@@ -144,7 +156,7 @@
         };
 
         var sendObj = function(obj){
-            phpws.send(JSON.stringify(obj));
+            client.send(JSON.stringify(obj));
         };
 
         var addReply = function(obj){
@@ -160,20 +172,20 @@
             };
         };
 
-        phpws.on("message", function(message){
+        client.on("message", function(message){
             var messageObj = JSON.parse(message);
             addReply(messageObj);
 
             self.trigger(messageObj.event, messageObj);
 
             if('room' in messageObj){
-                self.room(message.room).trigger(messageObj.event, messageObj);
+                self.room(messageObj.room).trigger(messageObj.event, messageObj);
             }
         });
 
         this.room = function(name){
             if(!(name in rooms))
-                rooms[name] = new Room(phpws, this, name);
+                rooms[name] = new Room(client, this, name);
 
             return rooms[name];
         };
@@ -192,7 +204,8 @@
         }
     };
 
-    EventTransport.prototype = new Emitter();
+    EventTransport.prototype = new Emitter;
+    EventTransport.prototype.constructor = EventTransport;
 
     window.Phpws = {
         Client: Client,

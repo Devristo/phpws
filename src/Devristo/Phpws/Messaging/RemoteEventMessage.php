@@ -100,7 +100,6 @@ class RemoteEventMessage implements MessageInterface {
             'room' => $this->getRoom(),
             'event' => $this->getEvent()
         ));
-        return $JsonMessage;
     }
 
     /**

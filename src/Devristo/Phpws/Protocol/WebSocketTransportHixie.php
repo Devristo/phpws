@@ -24,12 +24,12 @@ class WebSocketTransportHixie extends WebSocketTransport
         $l8b = $this->request->getContent();
 
         // Check for 2-key based handshake (Hixie protocol draft)
-        $key1 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key1', null);
-        $key2 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key12', null);
+        $key1 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key1')->getFieldValue();
+        $key2 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key2')->getFieldValue();
 
         // Origin checking (TODO)
-        $origin = $this->getHandshakeRequest()->getHeader('Origin', null);
-        $host = $this->getHandshakeRequest()->getHeader('Host');
+        $originHeader  = $this->getHandshakeRequest()->getHeader('Origin', null);
+        $host = $this->getHandshakeRequest()->getHeader('Host')->getFieldValue();
         $location = $this->getHandshakeRequest()->getUriString();
 
         // Build response
@@ -42,7 +42,9 @@ class WebSocketTransportHixie extends WebSocketTransport
 
         $headers->addHeaderLine("Upgrade", "WebSocket");
         $headers->addHeaderLine("Connection", "Upgrade");
-        $headers->addHeaderLine("Sec-WebSocket-Origin", $origin);
+
+        if($originHeader)
+            $headers->addHeaderLine("Sec-WebSocket-Origin", $originHeader->getFieldValue());
         $headers->addHeaderLine("Sec-WebSocket-Location", "ws://{$host}$location");
 
         // Build HIXIE response

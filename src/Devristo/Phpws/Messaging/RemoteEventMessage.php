@@ -80,6 +80,9 @@ class RemoteEventMessage implements MessageInterface {
     public static function fromJson($jsonString){
         $data = json_decode($jsonString);
 
+        if(!$data || !property_exists($data, 'event') || !property_exists($data, 'tag') || !property_exists($data, 'room'))
+            throw new \InvalidArgumentException("Not a valid JSON RemoteEvent object");
+
         $JsonMessage = new RemoteEventMessage();
 
         if(property_exists($data, 'data'))

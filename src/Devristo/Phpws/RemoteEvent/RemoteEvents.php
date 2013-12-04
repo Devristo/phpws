@@ -42,8 +42,6 @@ class RemoteEvents extends \Evenement\EventEmitter
 
             $event = $message->getEvent();
 
-
-
             if ($message->getEvent() == 'subscribe'){
                 $self->room($room)->subscribe($transport);
 
@@ -65,7 +63,7 @@ class RemoteEvents extends \Evenement\EventEmitter
             }
 
 
-            $self->room($room)->emit("unsubscribe", array($transport, $message));
+            $self->room($room)->emit($message->getEvent(), array($transport, $message));
             $self->emit($event, array($transport, $message));
         });
     }

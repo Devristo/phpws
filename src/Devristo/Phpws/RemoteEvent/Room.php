@@ -7,7 +7,6 @@ use Devristo\Phpws\Protocol\StackTransport;
 class Room extends \Evenement\EventEmitter
 {
     private $members = array();
-    private $transports = array();
     private $name = '';
     private $logger;
 
@@ -20,7 +19,6 @@ class Room extends \Evenement\EventEmitter
     public function subscribe(StackTransport $transport)
     {
         $this->members[$transport->getId()] = $transport;
-        $this->transports[$transport->getId()] = $transport;
 
         $self = $this;
 
@@ -33,8 +31,11 @@ class Room extends \Evenement\EventEmitter
 
     public function unsubscribe(StackTransport $transport)
     {
-        if (array_key_exists($transport->getId(), $this->members))
+        if (array_key_exists($transport->getId(), $this->members)){
             unset($this->members[$transport->getId()]);
+
+            $this->emit("unsubscribe", array($transport));
+        }
     }
 
     /**

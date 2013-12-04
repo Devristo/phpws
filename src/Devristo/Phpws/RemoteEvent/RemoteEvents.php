@@ -42,10 +42,18 @@ class RemoteEvents extends \Evenement\EventEmitter
 
             $event = $message->getEvent();
 
-            if ($message->getEvent() == 'subscribe')
+            if ($message->getEvent() == 'subscribe'){
                 $self->room($room)->subscribe($transport);
-            elseif ($message->getEvent() == 'unsubscribe')
+
+                $transport->getWebSocketTransport()->on("close", function() use ($self, $transport){
+                    $self->emit("unsubscribe", array($transport));
+                });
+
+            } elseif ($message->getEvent() == 'unsubscribe'){
                 $self->room($room)->unsubscribe($transport);
+                return;
+            }
+
 
             $self->room($room)->emit($event, array($transport, $message));
             $self->emit($event, array($transport, $message));

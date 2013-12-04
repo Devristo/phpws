@@ -19,13 +19,6 @@ class Room extends \Evenement\EventEmitter
     public function subscribe(StackTransport $transport)
     {
         $this->members[$transport->getId()] = $transport;
-
-        $self = $this;
-
-        $transport->getWebSocketTransport()->on("close", function () use ($self, $transport) {
-            $self->unsubscribe($transport);
-        });
-
         $this->logger->notice("[{$this->name}] User {$transport->getId()} has subscribed!");
     }
 

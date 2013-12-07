@@ -32,7 +32,7 @@ class WebSocketConnection extends Connection
 
     public function handleData($stream)
     {
-        $data = @fread($stream, $this->bufferSize);
+        $data = fread($stream, $this->bufferSize);
         if ('' === $data || false === $data) {
             $this->end();
         } else {

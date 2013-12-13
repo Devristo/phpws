@@ -21,7 +21,7 @@ class WebSocketOpcode
     const BinaryFrame = 0x02;
     const CloseFrame = 0x08;
     const PingFrame = 0x09;
-    const PongFrame = 0x09;
+    const PongFrame = 0x0A;
 
     private function __construct()
     {

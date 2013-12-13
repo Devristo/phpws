@@ -2,7 +2,10 @@
 
 namespace Devristo\Phpws\Server;
 
+use Devristo\Phpws\Framing\WebSocketFrame;
+use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Protocol\Handshake;
+use Devristo\Phpws\Protocol\WebSocketTransportHybi;
 use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Protocol\WebSocketConnection;
 use Evenement\EventEmitter;
@@ -151,8 +154,9 @@ class WebSocketServer extends EventEmitter
                 }
             });
 
-            $client->on("close", function () use ($that, $client, $logger) {
+            $client->on("close", function () use ($that, $client, $logger, &$sockets, $client) {
                 try{
+                    $sockets->detach($client);
                     $connection = $client->getTransport();
 
                     if($connection){
@@ -171,8 +175,14 @@ class WebSocketServer extends EventEmitter
         });
 
         $this->loop->addPeriodicTimer(5, function () use ($timeOut, $sockets, $that) {
-            $currentTime = time();
 
+            # Lets send some pings
+            foreach($that->getConnections() as $c){
+                if($c instanceof WebSocketTransportHybi)
+                    $c->sendFrame(WebSocketFrame::create(WebSocketOpcode::PingFrame));
+            }
+
+            $currentTime = time();
             if ($timeOut == null)
                 return;
 

@@ -32,6 +32,11 @@ class WebSocketConnection extends Connection
 
     public function handleData($stream)
     {
+        if (feof($stream) || !is_resource($stream)){
+            $this->end();
+            return;
+        }
+
         $data = fread($stream, $this->bufferSize);
         if ('' === $data || false === $data) {
             $this->end();

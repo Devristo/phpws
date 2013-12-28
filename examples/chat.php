@@ -46,6 +46,20 @@ class ChatHandler extends WebSocketUriHandler {
         }
     }
 }
+class ChatHandlerForUnroutedUrls extends WebSocketUriHandler {
+    /**
+     * This class deals with users who are not routed
+     */
+    public function onConnect(WebSocketTransportInterface $user){
+		//do nothing
+		$this->logger->notice("User {$user->getId()} did not join any room");
+    }
+    public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg) {
+    	//do nothing
+        $this->logger->notice("User {$user->getId()} is not in a room but tried to say: {$msg->getData()}");
+    }
+}
+
 
 $loop = \React\EventLoop\Factory::create();
 
@@ -56,9 +70,13 @@ $logger->addWriter($writer);
 
 // Create a WebSocket server
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
+
 // Create a router which transfers all /chat connections to the ChatHandler class
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
+// route /chat url
 $router->addRoute('#^/chat$#i', new ChatHandler($logger));
+// route unmatched urls durring this demo to avoid errors
+$router->addRoute('#^(.*)$#i', new ChatHandlerForUnroutedUrls($logger));
 
 // Bind the server
 $server->bind();

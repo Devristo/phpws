@@ -1,10 +1,13 @@
 #!/php -q
 <?php
 
+// Set timezone of script to UTC inorder to avoid DateTime warnings in
+// vendor/zendframework/zend-log/Zend/Log/Logger.php
+date_default_timezone_set('UTC');
+
 require_once("../vendor/autoload.php");
 
-
-// Run from command prompt > php demo.php
+// Run from command prompt > php chat.php
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketOpcode;
 use Devristo\Phpws\Messaging\WebSocketMessageInterface;
@@ -14,11 +17,7 @@ use Devristo\Phpws\Server\UriHandler\WebSocketUriHandler;
 use Devristo\Phpws\Server\WebSocketServer;
 
 /**
- * This demo resource handler will respond to all messages sent to /echo/ on the socketserver below
- *
- * All this handler does is echoing the responds to the user
- * @author Chris
- *
+ * This ChatHandler handler below will respond to all messages sent to /chat (e.g. ws://localhost:12345/chat)
  */
 class ChatHandler extends WebSocketUriHandler {
 
@@ -47,6 +46,20 @@ class ChatHandler extends WebSocketUriHandler {
         }
     }
 }
+class ChatHandlerForUnroutedUrls extends WebSocketUriHandler {
+    /**
+     * This class deals with users who are not routed
+     */
+    public function onConnect(WebSocketTransportInterface $user){
+		//do nothing
+		$this->logger->notice("User {$user->getId()} did not join any room");
+    }
+    public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg) {
+    	//do nothing
+        $this->logger->notice("User {$user->getId()} is not in a room but tried to say: {$msg->getData()}");
+    }
+}
+
 
 $loop = \React\EventLoop\Factory::create();
 
@@ -55,13 +68,20 @@ $logger = new \Zend\Log\Logger();
 $writer = new Zend\Log\Writer\Stream("php://output");
 $logger->addWriter($writer);
 
-// Create a WebSocket server and create a router which sends all user requesting /echo to the DemoEchoHandler above
+// Create a WebSocket server
 $server = new WebSocketServer("tcp://0.0.0.0:12345", $loop, $logger);
+
+// Create a router which transfers all /chat connections to the ChatHandler class
 $router = new \Devristo\Phpws\Server\UriHandler\ClientRouter($server, $logger);
+// route /chat url
 $router->addRoute('#^/chat$#i', new ChatHandler($logger));
+// route unmatched urls durring this demo to avoid errors
+$router->addRoute('#^(.*)$#i', new ChatHandlerForUnroutedUrls($logger));
 
 // Bind the server
 $server->bind();
 
 // Start the event loop
 $loop->run();
+
+?>

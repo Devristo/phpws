@@ -78,15 +78,17 @@ class WebSocket extends EventEmitter
 
         $uri = new Uri($this->url);
 
-        if($uri->getScheme() == 'ws'){
-            $connector = new \React\SocketClient\Connector($this->loop, $this->dns);
-        } else{
-            $connector = new \React\SocketClient\SecureConnector($this->loop, $this->dns);
+        $isSecured   = 'wss' === $uri->getScheme();
+        $defaultPort = $isSecured ? 443 : 80;
+
+        $connector = new \React\SocketClient\Connector($this->loop, $this->dns);
+        if ($isSecured) {
+            $connector = new \React\SocketClient\SecureConnector($connector, $this->loop);
         }
 
         $promise = new Deferred();
 
-        $connector->create($uri->getHost(), $uri->getPort() ?: 80)
+        $connector->create($uri->getHost(), $uri->getPort() ?: $defaultPort)
             ->then(function (\React\Stream\Stream $stream) use ($that, $uri, $promise,$timeOut){
 
                 if($timeOut){
@@ -104,6 +106,7 @@ class WebSocket extends EventEmitter
                 $that->stream = $stream;
 
                 $stream->on("close", function() use($that){
+                    $that->isClosing = false;
                     $that->state = WebSocket::STATE_CLOSED;
                 });
 

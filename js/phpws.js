@@ -99,7 +99,7 @@
 
         this.close = function(){
             return ws.close.apply(ws, arguments);
-        }
+        };
     };
 
     Client.prototype = new Emitter;
@@ -139,7 +139,6 @@
             console.log("Subscribing to room " + self.name);
             self.transport.emit(self.name, "subscribe");
         });
-
         return this;
     };
 
@@ -151,7 +150,6 @@
         var previousTag = 0;
         var generateTag = function(){
             previousTag += 1;
-
             return "client-"+previousTag;
         };
 
@@ -201,7 +199,7 @@
             sendObj(msg);
 
             return this;
-        }
+        };
     };
 
     EventTransport.prototype = new Emitter;

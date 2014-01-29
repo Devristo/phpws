@@ -32,10 +32,12 @@ class WebSocketFrame76 implements WebSocketFrameInterface
         return $this->opcode;
     }
 
-    public static function decode(&$str, $head = null)
+    public static function decode(&$str)
     {
         $o = new self();
         $o->payloadData = substr($str, 1, strlen($str) - 2);
+
+        $str = '';
 
         return $o;
     }

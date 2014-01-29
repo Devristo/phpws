@@ -129,65 +129,67 @@ class WebSocketFrame implements WebSocketFrameInterface
         return $encoded;
     }
 
-    public static function decode(&$raw, $head = null)
+    public static function decode(&$buffer)
     {
-        if ($head != null) {
-            $frame = $head;
-        } else {
-            $frame = new self();
+        if(!strlen($buffer))
+            return null;
 
-            // Read the first two bytes, then chop them off
-            list($firstByte, $secondByte) = substr($raw, 0, 2);
+        $frame = new self();
+
+        // Read the first two bytes, then chop them off
+        list($firstByte, $secondByte) = substr($buffer, 0, 2);
+        $raw = substr($buffer, 2);
+
+        $firstByte = ord($firstByte);
+        $secondByte = ord($secondByte);
+
+        $frame->FIN = self::IsBitSet($firstByte, 7);
+        $frame->RSV1 = self::IsBitSet($firstByte, 6);
+        $frame->RSV2 = self::IsBitSet($firstByte, 5);
+        $frame->RSV3 = self::IsBitSet($firstByte, 4);
+
+        $frame->mask = self::IsBitSet($secondByte, 7);
+
+        $frame->opcode = ($firstByte & 0x0F);
+
+        $len = $secondByte & ~128;
+
+        if ($len <= 125){
+            $frame->payloadLength = $len;
+        }elseif (($len == 126) && strlen($raw) >= 2){
+            $arr = unpack("nfirst", $raw);
+            $frame->payloadLength = array_pop($arr);
             $raw = substr($raw, 2);
-
-            $firstByte = ord($firstByte);
-            $secondByte = ord($secondByte);
-
-            $frame->FIN = self::IsBitSet($firstByte, 7);
-            $frame->RSV1 = self::IsBitSet($firstByte, 6);
-            $frame->RSV2 = self::IsBitSet($firstByte, 5);
-            $frame->RSV3 = self::IsBitSet($firstByte, 4);
-
-            $frame->mask = self::IsBitSet($secondByte, 7);
-
-            $frame->opcode = ($firstByte & 0x0F);
-
-            $len = $secondByte & ~128;
-
-            if ($len <= 125)
-                $frame->payloadLength = $len;
-            elseif ($len == 126) {
-                $arr = unpack("nfirst", $raw);
-                $frame->payloadLength = array_pop($arr);
-                $raw = substr($raw, 2);
-            } elseif ($len == 127) {
-                list(, $h, $l) = unpack('N2', $raw);
-                $frame->payloadLength = ($l + ($h * 0x0100000000));
-                $raw = substr($raw, 8);
-            }
-
-            if ($frame->mask) {
-                $frame->maskingKey = substr($raw, 0, 4);
-                $raw = substr($raw, 4);
-            }
+        } elseif (($len == 127) && strlen($raw) >= 8) {
+            list(, $h, $l) = unpack('N2', $raw);
+            $frame->payloadLength = ($l + ($h * 0x0100000000));
+            $raw = substr($raw, 8);
+        } else{
+            return null;
         }
 
-        $currentOffset = $frame->actualLength;
-        $fullLength = min($frame->payloadLength - $frame->actualLength, strlen($raw));
-        $frame->actualLength += $fullLength;
+        // If the frame is masked, try to eat the key from the buffer. If the buffer is insufficient, return null and
+        // try again next time
+        if ($frame->mask) {
+            if(strlen($raw) < 4)
+                return null;
 
-        if ($fullLength < strlen($raw)) {
-            $frameData = substr($raw, 0, $fullLength);
-            $raw = substr($raw, $fullLength);
-        } else {
-            $frameData = $raw;
-            $raw = '';
+            $frame->maskingKey = substr($raw, 0, 4);
+            $raw = substr($raw, 4);
         }
+
+
+        // Don't continue until we have a full frame
+        if(strlen($raw) < $frame->payloadLength)
+            return null;
 
         if ($frame->mask)
-            $frame->payloadData .= self::rotMask($frameData, $frame->maskingKey, $currentOffset);
+            $frame->payloadData = self::rotMask($raw, $frame->maskingKey, 0);
         else
-            $frame->payloadData .= $frameData;
+            $frame->payloadData = $raw;
+
+        // Advance buffer
+        $buffer = substr($raw, $frame->payloadLength);
 
         return $frame;
     }

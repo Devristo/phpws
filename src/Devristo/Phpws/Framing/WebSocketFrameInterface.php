@@ -28,7 +28,7 @@ interface WebSocketFrameInterface
      * @param null $head
      * @return string Serialized binary string
      */
-    public static function decode(&$string, $head = null);
+    public static function decode(&$string);
 
     /**
      * @return string Payload Data inside the frame

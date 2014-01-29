@@ -30,7 +30,7 @@ interface WebSocketTransportInterface extends TransportInterface
      */
     public function getHandshakeResponse();
 
-    public function handleData($data);
+    public function handleData(&$data);
 
     public function sendString($msg);
 

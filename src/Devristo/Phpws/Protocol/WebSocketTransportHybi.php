@@ -87,25 +87,17 @@ class WebSocketTransportHybi extends WebSocketTransport
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
     }
 
-    public function handleData($data)
+    public function handleData(&$data)
     {
         if(!$this->connected)
             $data = $this->readHandshakeResponse($data);
 
         $frames = array();
-        while (!empty($data)) {
-            $frame = WebSocketFrame::decode($data, $this->lastFrame);
-            if ($frame->isReady()) {
-
-                if (WebSocketOpcode::isControlFrame($frame->getType()))
-                    $this->processControlFrame($frame);
-                else
-                    $this->processMessageFrame($frame);
-
-                $this->lastFrame = null;
-            } else {
-                $this->lastFrame = $frame;
-            }
+        while ($frame = WebSocketFrame::decode($data)){
+            if (WebSocketOpcode::isControlFrame($frame->getType()))
+                $this->processControlFrame($frame);
+            else
+                $this->processMessageFrame($frame);
 
             $frames[] = $frame;
         }

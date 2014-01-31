@@ -183,13 +183,15 @@ class WebSocketFrame implements WebSocketFrameInterface
         if(strlen($raw) < $frame->payloadLength)
             return null;
 
-        if ($frame->mask)
-            $frame->payloadData = self::rotMask($raw, $frame->maskingKey, 0);
-        else
-            $frame->payloadData = $raw;
+        $packetPayload = substr($raw, 0, $frame->payloadLength);
 
         // Advance buffer
         $buffer = substr($raw, $frame->payloadLength);
+
+        if ($frame->mask)
+            $frame->payloadData = self::rotMask($packetPayload, $frame->maskingKey, 0);
+        else
+            $frame->payloadData = $packetPayload;
 
         return $frame;
     }

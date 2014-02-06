@@ -11,9 +11,11 @@ class Connector extends BaseConnector
     
     protected $contextOptions = array();
     
-    public function __construct(LoopInterface $loop, Resolver $resolver, array $contextOptions = array()) 
+    public function __construct(LoopInterface $loop, Resolver $resolver, array $contextOptions = null) 
     {
         parent::__construct($loop, $resolver);
+        
+        $contextOptions = null === $contextOptions ? array() : $contextOptions;
         $this->contextOptions = $contextOptions;
     }
     

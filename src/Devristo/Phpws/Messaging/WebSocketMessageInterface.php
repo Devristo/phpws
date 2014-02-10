@@ -35,12 +35,6 @@ interface WebSocketMessageInterface extends MessageInterface
     public function setData($data);
 
     /**
-     * Retrieve the body of the message
-     * @return string
-     */
-    public function getData();
-
-    /**
      * Create a new message
      * @param string $data Content of the message to be created
      */

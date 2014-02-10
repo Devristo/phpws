@@ -52,11 +52,14 @@ class WebSocket extends EventEmitter
     protected $logger;
 
     protected $isClosing = false;
+    
+    protected $streamOptions = null;
 
-    public function __construct($url, LoopInterface $loop, LoggerInterface $logger)
+    public function __construct($url, LoopInterface $loop, LoggerInterface $logger, array $streamOptions = null)
     {
         $this->logger = $logger;
         $this->loop = $loop;
+        $this->streamOptions = $streamOptions;
         $parts = parse_url($url);
 
         $this->url = $url;
@@ -67,7 +70,6 @@ class WebSocket extends EventEmitter
         $dnsResolverFactory = new \React\Dns\Resolver\Factory();
         $this->dns = $dnsResolverFactory->createCached('8.8.8.8', $loop);
     }
-
 
     public function open($timeOut=null)
     {
@@ -81,7 +83,8 @@ class WebSocket extends EventEmitter
         $isSecured   = 'wss' === $uri->getScheme();
         $defaultPort = $isSecured ? 443 : 80;
 
-        $connector = new \React\SocketClient\Connector($this->loop, $this->dns);
+        $connector = new Connector($this->loop, $this->dns, $this->streamOptions);
+
         if ($isSecured) {
             $connector = new \React\SocketClient\SecureConnector($connector, $this->loop);
         }

@@ -131,7 +131,7 @@ class WebSocketFrame implements WebSocketFrameInterface
 
     public static function decode(&$buffer)
     {
-        if(!strlen($buffer) < 2)
+        if(strlen($buffer) < 2)
             return null;
 
         $frame = new self();

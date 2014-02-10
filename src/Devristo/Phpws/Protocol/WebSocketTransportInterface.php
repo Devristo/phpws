@@ -32,8 +32,6 @@ interface WebSocketTransportInterface extends TransportInterface
 
     public function handleData(&$data);
 
-    public function sendString($msg);
-
     public function getIp();
 
     public function close();

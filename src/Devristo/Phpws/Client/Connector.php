@@ -5,6 +5,7 @@ namespace Devristo\Phpws\Client;
 use React\SocketClient\Connector as BaseConnector;
 use React\EventLoop\LoopInterface;
 use React\Dns\Resolver\Resolver;
+use React\Promise\When;
 
 class Connector extends BaseConnector
 {

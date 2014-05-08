@@ -179,7 +179,7 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         throw new \BadMethodCallException();
     }
 
-    public function handleData($data)
+    public function handleData(&$data)
     {
         throw new \BadMethodCallException();
     }

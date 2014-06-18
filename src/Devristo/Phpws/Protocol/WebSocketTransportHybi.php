@@ -209,8 +209,14 @@ class WebSocketTransportHybi extends WebSocketTransport
         if($uri->getQuery())
             $requestUri .= "?".$uri->getQuery();
 
-
-        $request->setUri($requestUri);
+        try
+        {
+            $request->setUri($requestUri);
+        }
+        catch (Exception $e)
+        {
+            //$this->logger->err("initiateHandshake: ".$e->getMessage()); 
+        }
 
         $request->getHeaders()->addHeaderLine("Connection", "Upgrade");
         $request->getHeaders()->addHeaderLine("Host", $uri->getHost());

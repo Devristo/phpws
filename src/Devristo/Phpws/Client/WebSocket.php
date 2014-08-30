@@ -89,10 +89,10 @@ class WebSocket extends EventEmitter
             $connector = new \React\SocketClient\SecureConnector($connector, $this->loop);
         }
 
-        $promise = new Deferred();
+        $deferred = new Deferred();
 
         $connector->create($uri->getHost(), $uri->getPort() ?: $defaultPort)
-            ->then(function (\React\Stream\Stream $stream) use ($that, $uri, $promise,$timeOut){
+            ->then(function (\React\Stream\Stream $stream) use ($that, $uri, $deferred, $timeOut){
 
                 if($timeOut){
                     $timeOutTimer = $that->loop->addTimer($timeOut, function() use($promise, $stream, $that){
@@ -125,11 +125,11 @@ class WebSocket extends EventEmitter
                     $that->emit("handshake", array($handshake));
                 });
 
-                $transport->on("connect", function() use(&$state, $that, $transport, $timeOutTimer, $promise){
+                $transport->on("connect", function() use(&$state, $that, $transport, $timeOutTimer, $deferred){
                     if($timeOutTimer)
                         $timeOutTimer->cancel();
 
-                    $promise->resolve($transport);
+                    $deferred->resolve($transport);
                     $that->state = WebSocket::STATE_CONNECTED;
                     $that->emit("connect");
 
@@ -146,7 +146,7 @@ class WebSocket extends EventEmitter
                 $that->logger->err($reason);
             });
 
-        return $promise;
+        return $deferred->promise();
 
     }
 

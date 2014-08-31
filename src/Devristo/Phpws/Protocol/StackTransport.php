@@ -139,12 +139,12 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         throw new \BadMethodCallException("Immutable stack, cannot set element");
     }
 
-    public function on($event, $listener)
+    public function on($event, callable $listener)
     {
         return $this->getTopTransport()->on($event, $listener);
     }
 
-    public function once($event, $listener)
+    public function once($event, callable $listener)
     {
         return $this->getTopTransport()->once($event, $listener);
     }

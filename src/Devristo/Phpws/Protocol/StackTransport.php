@@ -149,7 +149,7 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         return $this->getTopTransport()->once($event, $listener);
     }
 
-    public function removeListener($event, $listener)
+    public function removeListener($event, callable $listener)
     {
         return $this->getTopTransport()->removeListener($event, $listener);
     }

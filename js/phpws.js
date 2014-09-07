@@ -50,32 +50,36 @@
         var reconnectTimer = null;
 
         this.connect = function(url, autoReconnect){
-            ws = new WebSocket(url);
+            try {
+                ws = new WebSocket(url);
+            }catch(error){
+                console.log("Cannot create WebSocket instance");
+                return openPromise;
+            }
 
-            ws.addEventListener('open', function(){
+            ws.addEventListener('open', function () {
                 openPromise.resolveWith(self);
                 self.trigger("open", arguments);
             });
 
-            ws.addEventListener('close', function(){
+            ws.addEventListener('close', function () {
                 openPromise.resolveWith(self);
                 self.trigger("close", arguments);
             });
 
-            ws.addEventListener('error', function(){
+            ws.addEventListener('error', function () {
                 openPromise.rejectWith(self);
                 self.trigger("error", arguments);
             });
 
-            ws.addEventListener('message', function(event){
-                self.trigger("message", event.data);
+            ws.addEventListener('message', function (event) {
+                self.trigger("message", [event.data]);
             });
 
-
-            if(autoReconnect && !reconnectTimer){
+            if (autoReconnect && !reconnectTimer) {
                 reconnectTimer = setInterval(
-                    function(){
-                        if(ws.readyState != WebSocket.OPEN)
+                    function () {
+                        if (ws.readyState != WebSocket.OPEN)
                             self.connect(url);
                     },
                     5000
@@ -88,7 +92,7 @@
         this.whenConnected = function(callback, context){
             this.on("open", function(){callback.call(context);});
 
-            if(ws.readyState == WebSocket.OPEN){
+            if(ws && ws.readyState == WebSocket.OPEN){
                 callback.call(context);
             }
         };

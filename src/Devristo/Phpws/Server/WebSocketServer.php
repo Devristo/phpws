@@ -136,35 +136,23 @@ class WebSocketServer extends EventEmitter
             });
 
             $client->on("connect", function () use ($that, $client, $logger) {
-                try {
-                    $con = $client->getTransport();
-                    $that->getConnections()->attach($con);
-                    $that->emit("connect", array("client" => $con));
-                } catch (Exception $e) {
-                    $logger->err("[on_connect] Error occurred while running a callback");
-                }
+                $con = $client->getTransport();
+                $that->getConnections()->attach($con);
+                $that->emit("connect", array("client" => $con));
             });
 
             $client->on("message", function ($message) use ($that, $client, $logger) {
-                try {
-                    $connection = $client->getTransport();
-                    $that->emit("message", array("client" => $connection, "message" => $message));
-                } catch (Exception $e) {
-                    $logger->err("[on_message] Error occurred while running a callback");
-                }
+                $connection = $client->getTransport();
+                $that->emit("message", array("client" => $connection, "message" => $message));
             });
 
             $client->on("close", function () use ($that, $client, $logger, &$sockets, $client) {
-                try{
-                    $sockets->detach($client);
-                    $connection = $client->getTransport();
+                $sockets->detach($client);
+                $connection = $client->getTransport();
 
-                    if($connection){
-                        $that->getConnections()->detach($connection);
-                        $that->emit("disconnect", array("client" => $connection));
-                    }
-                }catch (Exception $e) {
-                    $logger->err("[on_message] Error occurred while running a callback");
+                if($connection){
+                    $that->getConnections()->detach($connection);
+                    $that->emit("disconnect", array("client" => $connection));
                 }
             });
 

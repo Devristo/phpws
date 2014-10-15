@@ -87,17 +87,17 @@ class WebSocketTransportHybi extends WebSocketTransport
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
     }
 
-	private static function isValidHeader($data) {
-		return substr($data,-4) == "\x0d\x0a\x0d\x0a";
-	}
+    private static function isValidHeader($data) {
+        return substr($data,-4) == "\r\n\r\n";
+    }
 
     public function handleData(&$data)
     {
         if(!$this->connected)
 		{
-			if (!$this->isValidHeader($data)) {
-				return array();
-			}
+            if (!$this->isValidHeader($data)) {
+                return array();
+            }
             $data = $this->readHandshakeResponse($data);
 		}
 

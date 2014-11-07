@@ -25,7 +25,7 @@ class Connector extends BaseConnector
         return stream_context_create($this->contextOptions);
     }
     
-    public function createSocketForAddress($address, $port)
+    public function createSocketForAddress($address, $port, $hostName = null)
     {
         $url = $this->getSocketUrl($address, $port);
 

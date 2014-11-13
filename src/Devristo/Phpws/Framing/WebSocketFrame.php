@@ -102,7 +102,7 @@ class WebSocketFrame implements WebSocketFrameInterface
             $secondByte += $this->mask * 128;
 
             $encoded .= chr($secondByte);
-        } else if ($this->payloadLength <= 255 * 255 - 1) {
+        } else if ($this->payloadLength <= 256 * 256 - 1) {
             $secondByte = 126;
             $secondByte += $this->mask * 128;
 

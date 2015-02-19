@@ -92,7 +92,7 @@ class WebSocket extends EventEmitter
         $deferred = new Deferred();
 
         $connector->create($uri->getHost(), $uri->getPort() ?: $defaultPort)
-            ->then(function (\React\Stream\Stream $stream) use ($that, $uri, $deferred, $timeOut){
+            ->then(function (\React\Stream\DuplexStreamInterface $stream) use ($that, $uri, $deferred, $timeOut){
 
                 if($timeOut){
                     $timeOutTimer = $that->loop->addTimer($timeOut, function() use($promise, $stream, $that){

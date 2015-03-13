@@ -138,6 +138,7 @@ Requirements
  * PHP 5.3
  * Open port for the server
  * PHP OpenSSL module to run a server over a encrypted connection
+ * http://pecl.php.net/package/pecl_http as its a dependency of Zend\Uri
 
 * Composer dependencies *
 These will be installed automatically when using phpws as a composer package.

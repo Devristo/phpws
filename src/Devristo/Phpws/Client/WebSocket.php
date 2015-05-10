@@ -95,11 +95,11 @@ class WebSocket extends EventEmitter
             ->then(function (\React\Stream\DuplexStreamInterface $stream) use ($that, $uri, $deferred, $timeOut){
 
                 if($timeOut){
-                    $timeOutTimer = $that->loop->addTimer($timeOut, function() use($promise, $stream, $that){
+                    $timeOutTimer = $that->loop->addTimer($timeOut, function() use($deferred, $stream, $that){
                         $stream->close();
                         $that->logger->notice("Timeout occured, closing connection");
                         $that->emit("error");
-                        $promise->reject("Timeout occured");
+                        $deferred->reject("Timeout occured");
                     });
                 } else $timeOutTimer = null;
 

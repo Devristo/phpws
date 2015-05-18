@@ -121,7 +121,12 @@ class WebSocketServer extends EventEmitter
         $logger = $this->_logger;
 
         $this->loop->addReadStream($serverSocket, function ($serverSocket) use ($that, $logger, $sockets) {
-            $newSocket = stream_socket_accept($serverSocket);
+            try
+            {
+                $newSocket = stream_socket_accept($serverSocket);
+            } catch (\ErrorException $e) {
+                $newSocket = false;
+            }
 
             if (false === $newSocket) {
                 return;

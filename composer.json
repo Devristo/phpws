@@ -17,7 +17,7 @@
         "zendframework/zend-log": "2.*",
         "react/socket": "0.4.*",
         "react/stream": "0.4.*",
-        "react/socket-client": "0.4.*",
+        "react/socket-client": "dev-timeout",
         "zendframework/zend-http": "2.*"
     }
 }

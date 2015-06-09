@@ -25,7 +25,7 @@ class Connector extends BaseConnector
         return stream_context_create($this->contextOptions);
     }
     
-    public function createSocketForAddress($address, $port, $hostName = null)
+    public function createSocketForAddress($address, $port, $hostName = null, $timeout = 30)
     {
         $url = $this->getSocketUrl($address, $port);
 
@@ -43,9 +43,8 @@ class Connector extends BaseConnector
         // wait for connection
 
         return $this
-            ->waitForStreamOnce($socket)
+            ->waitForStreamOnce($socket, (int) $timeout)
             ->then(array($this, 'checkConnectedSocket'))
             ->then(array($this, 'handleConnectedSocket'));
-    }    
-    
+    }
 }

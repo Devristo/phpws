@@ -7,6 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Framing;
+
 /**
  * Interface for WebSocket frames. One or more frames compose a message.
  * In the case of the Hixie protocol, a message contains of one frame only
@@ -15,7 +16,6 @@ namespace Devristo\Phpws\Framing;
  */
 interface WebSocketFrameInterface
 {
-
     /**
      * Serialize the frame so that it can be send over a socket
      * @return string Serialized binary string
@@ -25,7 +25,6 @@ interface WebSocketFrameInterface
     /**
      * Deserialize a binary string into a IWebSocketFrame
      * @param $string
-     * @param null $head
      * @return string Serialized binary string
      */
     public static function decode(&$string);

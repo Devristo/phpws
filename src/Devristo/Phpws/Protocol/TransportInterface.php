@@ -8,9 +8,9 @@
 
 namespace Devristo\Phpws\Protocol;
 
-
 use Evenement\EventEmitterInterface;
 
-interface TransportInterface extends EventEmitterInterface{
+interface TransportInterface extends EventEmitterInterface
+{
     public function sendString($string);
-} 
+}

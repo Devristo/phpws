@@ -13,9 +13,16 @@ use Evenement\EventEmitterInterface;
 
 interface WebSocketUriHandlerInterface extends EventEmitterInterface
 {
-
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return mixed
+     */
     public function addConnection(WebSocketTransportInterface $user);
 
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return mixed
+     */
     public function removeConnection(WebSocketTransportInterface $user);
 
     /**

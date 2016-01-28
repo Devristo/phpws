@@ -8,25 +8,33 @@
 
 namespace Devristo\Phpws\Protocol;
 
-
 use Zend\Http\Request;
 use Zend\Http\Response;
 
-class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
+class StackTransport implements \ArrayAccess, WebSocketTransportInterface
+{
     protected $stack;
 
+    /**
+     * @param WebSocketTransportInterface $webSocketTransport
+     * @param $stackSpecs
+     * @return StackTransport
+     */
     public static function create(WebSocketTransportInterface $webSocketTransport, $stackSpecs)
     {
-        if (count($stackSpecs) < 1)
+        if (count($stackSpecs) < 1) {
             throw new \InvalidArgumentException("Stack should be a non empty array");
+        }
 
-        $ws2stack = array();
+        $ws2stack = [];
 
-        // A specification can be either a fully qualified class name or a lambda expression: TransportInterface -> TransportInterface
-        $instantiator = function($spec, TransportInterface $carrier){
-            if(is_string($spec)){
+        /** A specification can be either a fully qualified class name or a lambda expression:
+         * TransportInterface -> TransportInterface
+         */
+        $instantiator = function ($spec, TransportInterface $carrier) {
+            if (is_string($spec)) {
                 $transport = new $spec($carrier);
-            } elseif(is_callable($spec)){
+            } elseif (is_callable($spec)) {
                 $transport = $spec($carrier);
             }
             return $transport;
@@ -38,16 +46,16 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         /**
          * @var $stack TransportInterface[]
          */
-        $stack = array($carrier);
+        $stack = [$carrier];
 
         // Instantiate transports
         $i = 0;
-        do{
+        do {
             $transport = $instantiator($stackSpecs[$i], new StackTransport($stack));
             $stack[] = $transport;
 
             $i++;
-        }while($i < count($stackSpecs));
+        } while ($i < count($stackSpecs));
 
         $first = $stack[1];
         $last = $stack[count($stack) - 1];
@@ -56,9 +64,14 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         return new StackTransport($stack);
     }
 
-    public function __construct(array $stack){
-        if(count($stack) < 1)
+    /**
+     * @param array $stack
+     */
+    public function __construct(array $stack)
+    {
+        if (count($stack) < 1) {
             throw new \InvalidArgumentException("Stack must be a non-empty array");
+        }
 
         $this->stack = $stack;
     }
@@ -66,14 +79,16 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
     /**
      * @return WebSocketTransportInterface
      */
-    public function getWebSocketTransport(){
+    public function getWebSocketTransport()
+    {
         return $this->stack[0];
     }
 
     /**
      * @return TransportInterface
      */
-    public function getTopTransport(){
+    public function getTopTransport()
+    {
         return $this->stack[count($this->stack) - 1];
     }
 
@@ -139,61 +154,107 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         throw new \BadMethodCallException("Immutable stack, cannot set element");
     }
 
+    /**
+     * @param $event
+     * @param callable $listener
+     * @return mixed
+     */
     public function on($event, callable $listener)
     {
         return $this->getTopTransport()->on($event, $listener);
     }
 
+    /**
+     * @param $event
+     * @param callable $listener
+     * @return mixed
+     */
     public function once($event, callable $listener)
     {
         return $this->getTopTransport()->once($event, $listener);
     }
 
+    /**
+     * @param $event
+     * @param callable $listener
+     * @return mixed
+     */
     public function removeListener($event, callable $listener)
     {
         return $this->getTopTransport()->removeListener($event, $listener);
     }
 
+    /**
+     * @param null $event
+     * @return mixed
+     */
     public function removeAllListeners($event = null)
     {
         return $this->getTopTransport()->removeAllListeners($event);
     }
 
+    /**
+     * @param $event
+     * @return mixed
+     */
     public function listeners($event)
     {
         return $this->getTopTransport()->listeners($event);
     }
 
-    public function emit($event, array $arguments = array())
+    /**
+     * @param $event
+     * @param array $arguments
+     * @return mixed
+     */
+    public function emit($event, array $arguments = [])
     {
         return $this->getTopTransport()->emit($event, $arguments);
     }
 
+    /**
+     * @return mixed
+     */
     public function getId()
     {
         return $this->getWebSocketTransport()->getId();
     }
 
+    /**
+     * @param Request $request
+     */
     public function respondTo(Request $request)
     {
         throw new \BadMethodCallException();
     }
 
+    /**
+     * @param $data
+     */
     public function handleData(&$data)
     {
         throw new \BadMethodCallException();
     }
 
+    /**
+     * @param $msg
+     */
     public function sendString($msg)
     {
         $this->getTopTransport()->sendString($msg);
     }
 
+    /**
+     * @return void
+     */
     public function getIp()
     {
         $this->getWebSocketTransport()->getIp();
     }
 
+    /**
+     * @return void
+     */
     public function close()
     {
         $this->getWebSocketTransport()->close();
@@ -215,11 +276,21 @@ class StackTransport implements \ArrayAccess, WebSocketTransportInterface{
         return $this->getWebSocketTransport()->getHandshakeResponse();
     }
 
-    public function setData($key, $value){
+    /**
+     * @param $key
+     * @param $value
+     */
+    public function setData($key, $value)
+    {
         $this->getWebSocketTransport()->setData($key, $value);
     }
 
-    public function getData($key){
+    /**
+     * @param $key
+     * @return mixed
+     */
+    public function getData($key)
+    {
         return $this->getWebSocketTransport()->getData($key);
     }
 }

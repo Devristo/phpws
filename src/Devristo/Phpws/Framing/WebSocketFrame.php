@@ -7,6 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Framing;
+
 use Devristo\Phpws\Exceptions\WebSocketFrameSizeMismatch;
 
 /**
@@ -23,7 +24,7 @@ class WebSocketFrame implements WebSocketFrameInterface
     protected $RSV1 = 0;
     protected $RSV2 = 0;
     protected $RSV3 = 0;
-    protected $opcode = WebSocketOpcode::TextFrame;
+    protected $opcode = WebSocketOpcode::TEXT_FRAME;
     // Second Byte
     protected $mask = 0;
     protected $payloadLength = 0;
@@ -36,6 +37,11 @@ class WebSocketFrame implements WebSocketFrameInterface
 
     }
 
+    /**
+     * @param int $type
+     * @param null $data
+     * @return WebSocketFrame
+     */
     public static function create($type, $data = null)
     {
         $o = new self();
@@ -48,45 +54,72 @@ class WebSocketFrame implements WebSocketFrameInterface
         return $o;
     }
 
+    /**
+     * @param bool $mask
+     */
     public function setMasked($mask)
     {
         $this->mask = $mask ? 1 : 0;
     }
 
+    /**
+     * @return bool
+     */
     public function isMasked()
     {
         return $this->mask == 1;
     }
 
+    /**
+     * @param int $type
+     */
     protected function setType($type)
     {
         $this->opcode = $type;
 
-        if ($type == WebSocketOpcode::CloseFrame)
+        if ($type == WebSocketOpcode::CLOSE_FRAME) {
             $this->mask = 1;
+        }
     }
 
-    protected static function IsBitSet($byte, $pos)
+    /**
+     * @param int $byte
+     * @param int $pos
+     * @return int
+     */
+    protected static function isBitSet($byte, $pos)
     {
         return ($byte & pow(2, $pos)) > 0 ? 1 : 0;
     }
 
+    /**
+     * @param $data
+     * @param $key
+     * @param int $offset
+     * @return int
+     */
     protected static function rotMask($data, $key, $offset = 0)
     {
         // Rotate key for example if $offset=1 and $key=abcd then output will be bcda
-        $rotated_key = substr($key, $offset) . substr($key, 0, $offset);
+        $rotatedKey = substr($key, $offset) . substr($key, 0, $offset);
 
         // Repeat key until it is at least the size of the $data
-        $key_pad = str_repeat($rotated_key, ceil(1.0*strlen($data) / strlen($key)));
+        $keyPad = str_repeat($rotatedKey, ceil(1.0*strlen($data) / strlen($key)));
 
-        return $data ^ substr($key_pad, 0, strlen($data));
+        return $data ^ substr($keyPad, 0, strlen($data));
     }
 
+    /**
+     * @return int
+     */
     public function getType()
     {
         return $this->opcode;
     }
 
+    /**
+     * @return string
+     */
     public function encode()
     {
         $this->payloadLength = strlen($this->payloadData);
@@ -102,7 +135,7 @@ class WebSocketFrame implements WebSocketFrameInterface
             $secondByte += $this->mask * 128;
 
             $encoded .= chr($secondByte);
-        } else if ($this->payloadLength <= 256 * 256 - 1) {
+        } elseif ($this->payloadLength <= 256 * 256 - 1) {
             $secondByte = 126;
             $secondByte += $this->mask * 128;
 
@@ -123,16 +156,24 @@ class WebSocketFrame implements WebSocketFrameInterface
             $encoded .= $key;
         }
 
-        if ($this->payloadData)
-            $encoded .= ($this->mask == 1) ? $this->rotMask($this->payloadData, $key) : $this->payloadData;
+        if ($this->payloadData) {
+            $encoded .= ($this->mask == 1)
+                ? $this->rotMask($this->payloadData, $key)
+                : $this->payloadData;
+        }
 
         return $encoded;
     }
 
+    /**
+     * @param $buffer
+     * @return WebSocketFrame|null
+     */
     public static function decode(&$buffer)
     {
-        if(strlen($buffer) < 2)
+        if (strlen($buffer) < 2) {
             return null;
+        }
 
         $frame = new self();
 
@@ -143,20 +184,20 @@ class WebSocketFrame implements WebSocketFrameInterface
         $firstByte = ord($firstByte);
         $secondByte = ord($secondByte);
 
-        $frame->FIN = self::IsBitSet($firstByte, 7);
-        $frame->RSV1 = self::IsBitSet($firstByte, 6);
-        $frame->RSV2 = self::IsBitSet($firstByte, 5);
-        $frame->RSV3 = self::IsBitSet($firstByte, 4);
+        $frame->FIN = self::isBitSet($firstByte, 7);
+        $frame->RSV1 = self::isBitSet($firstByte, 6);
+        $frame->RSV2 = self::isBitSet($firstByte, 5);
+        $frame->RSV3 = self::isBitSet($firstByte, 4);
 
-        $frame->mask = self::IsBitSet($secondByte, 7);
+        $frame->mask = self::isBitSet($secondByte, 7);
 
         $frame->opcode = ($firstByte & 0x0F);
 
         $len = $secondByte & ~128;
 
-        if ($len <= 125){
+        if ($len <= 125) {
             $frame->payloadLength = $len;
-        }elseif (($len == 126) && strlen($raw) >= 2){
+        } elseif (($len == 126) && strlen($raw) >= 2) {
             $arr = unpack("nfirst", $raw);
             $frame->payloadLength = array_pop($arr);
             $raw = substr($raw, 2);
@@ -164,54 +205,66 @@ class WebSocketFrame implements WebSocketFrameInterface
             list(, $h, $l) = unpack('N2', $raw);
             $frame->payloadLength = ($l + ($h * 0x0100000000));
             $raw = substr($raw, 8);
-        } else{
+        } else {
             return null;
         }
 
         // If the frame is masked, try to eat the key from the buffer. If the buffer is insufficient, return null and
         // try again next time
         if ($frame->mask) {
-            if(strlen($raw) < 4)
+            if (strlen($raw) < 4) {
                 return null;
+            }
 
             $frame->maskingKey = substr($raw, 0, 4);
             $raw = substr($raw, 4);
         }
 
-
         // Don't continue until we have a full frame
-        if(strlen($raw) < $frame->payloadLength)
+        if (strlen($raw) < $frame->payloadLength) {
             return null;
+        }
 
         $packetPayload = substr($raw, 0, $frame->payloadLength);
 
         // Advance buffer
         $buffer = substr($raw, $frame->payloadLength);
 
-        if ($frame->mask)
+        if ($frame->mask) {
             $frame->payloadData = self::rotMask($packetPayload, $frame->maskingKey, 0);
-        else
+        } else {
             $frame->payloadData = $packetPayload;
+        }
 
         return $frame;
     }
 
+    /**
+     * @return bool
+     * @throws WebSocketFrameSizeMismatch
+     */
     public function isReady()
     {
         if ($this->actualLength > $this->payloadLength) {
             throw new WebSocketFrameSizeMismatch($this);
         }
+
         return ($this->actualLength == $this->payloadLength);
     }
 
+    /**
+     * @return bool
+     */
     public function isFinal()
     {
         return $this->FIN == 1;
     }
 
+    /**
+     * @return string
+     */
     public function getData()
     {
         return $this->payloadData;
     }
-
 }

@@ -11,7 +11,6 @@ use Zend\Log\LoggerInterface;
 
 class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInterface
 {
-
     /**
      *
      * Enter description here ...
@@ -36,30 +35,52 @@ class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInt
         $this->users = new SplObjectStorage();
         $this->logger = $logger;
 
-        $this->on("message", array($this, 'onMessage'));
-        $this->on("disconnect", array($this, 'onDisconnect'));
-        $this->on("connect", array($this, 'onConnect'));
+        $this->on("message", [$this, 'onMessage']);
+        $this->on("disconnect", [$this, 'onDisconnect']);
+        $this->on("connect", [$this, 'onConnect']);
     }
 
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return void
+     */
     public function addConnection(WebSocketTransportInterface $user)
     {
         $this->users->attach($user);
     }
 
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return void
+     */
     public function removeConnection(WebSocketTransportInterface $user)
     {
         $this->users->detach($user);
     }
 
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return void
+     */
     public function onDisconnect(WebSocketTransportInterface $user)
     {
 
     }
 
-    public function onConnect(WebSocketTransportInterface $user){
+    /**
+     * @param WebSocketTransportInterface $user
+     * @return void
+     */
+    public function onConnect(WebSocketTransportInterface $user)
+    {
 
     }
 
+    /**
+     * @param WebSocketTransportInterface $user
+     * @param WebSocketMessageInterface $msg
+     * @return void
+     */
     public function onMessage(WebSocketTransportInterface $user, WebSocketMessageInterface $msg)
     {
 
@@ -72,5 +93,4 @@ class WebSocketUriHandler extends EventEmitter implements WebSocketUriHandlerInt
     {
         return $this->users;
     }
-
 }

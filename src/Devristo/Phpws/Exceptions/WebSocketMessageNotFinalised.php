@@ -13,10 +13,8 @@ use Exception;
 
 class WebSocketMessageNotFinalised extends Exception
 {
-
     public function __construct(WebSocketMessageInterface $msg)
     {
         parent::__construct("WebSocketMessage is not finalised!");
     }
-
 }

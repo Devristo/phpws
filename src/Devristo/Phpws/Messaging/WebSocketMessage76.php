@@ -7,6 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Messaging;
+
 use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Framing\WebSocketOpcode;
@@ -20,7 +21,6 @@ use Devristo\Phpws\Framing\WebSocketOpcode;
  */
 class WebSocketMessage76 implements WebSocketMessageInterface
 {
-
     protected $data = '';
 
     /**
@@ -28,6 +28,10 @@ class WebSocketMessage76 implements WebSocketMessageInterface
      */
     protected $frame = null;
 
+    /**
+     * @param string $data
+     * @return WebSocketMessage76
+     */
     public static function create($data)
     {
         $o = new self();
@@ -36,26 +40,38 @@ class WebSocketMessage76 implements WebSocketMessageInterface
         return $o;
     }
 
+    /**
+     * @return array
+     */
     public function getFrames()
     {
-        $arr = array();
+        $arr = [];
 
         $arr[] = $this->frame;
 
         return $arr;
     }
 
+    /**
+     * @param string $data
+     */
     public function setData($data)
     {
         $this->data = $data;
-        $this->frame = WebSocketFrame76::create(WebSocketOpcode::TextFrame, $data);
+        $this->frame = WebSocketFrame76::create(WebSocketOpcode::TEXT_FRAME, $data);
     }
 
+    /**
+     * @return string
+     */
     public function getData()
     {
         return $this->frame->getData();
     }
 
+    /**
+     * @return bool
+     */
     public function isFinalised()
     {
         return true;
@@ -74,5 +90,4 @@ class WebSocketMessage76 implements WebSocketMessageInterface
 
         return $o;
     }
-
 }

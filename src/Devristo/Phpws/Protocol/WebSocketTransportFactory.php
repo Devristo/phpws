@@ -14,11 +14,16 @@ use Zend\Log\LoggerInterface;
 
 class WebSocketTransportFactory
 {
-
+    /**
+     * @param ConnectionInterface $socket
+     * @param $data
+     * @param LoggerInterface $logger
+     * @return WebSocketTransportFlash|WebSocketTransportHixie|WebSocketTransportHybi
+     */
     public static function fromSocketData(ConnectionInterface $socket, $data, LoggerInterface $logger)
     {
         // Check whether we have a Adobe Flash Policy file Request
-        if(strpos($data, '<policy-file-request/>') === 0){
+        if (strpos($data, '<policy-file-request/>') === 0) {
             $s = new WebSocketTransportFlash($socket, $data);
             $s->setLogger($logger);
 
@@ -30,11 +35,10 @@ class WebSocketTransportFactory
         if ($request->getHeader('Sec-Websocket-Key1')) {
             $s = new WebSocketTransportHixie($socket, $request, $data);
             $s->setLogger($logger);
-        } else{
+        } else {
             $s = new WebSocketTransportHybi($socket, $request);
             $s->setLogger($logger);
         }
-
 
         return $s;
     }

@@ -20,32 +20,36 @@ use Zend\Uri\Uri;
 
 class WebSocketTransportHybi extends WebSocketTransport
 {
-
     /**
      * @var WebSocketMessage
      */
-    private $_openMessage = null;
+    private $openMessage;
 
     /**
      * @var WebSocketFrame
      */
-    private $lastFrame = null;
+    private $lastFrame;
 
     protected $connected = false;
 
-    public function respondTo(Request $request){
+    /**
+     * @param Request $request
+     */
+    public function respondTo(Request $request)
+    {
         $this->request = $request;
-        $this->_role = WebsocketTransportRole::SERVER;
+        $this->role = WebsocketTransportRole::SERVER;
         $this->sendHandshakeResponse();
     }
 
     private function sendHandshakeResponse()
     {
-        try{
+        try {
             $challengeHeader = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key', null);
 
-            if(!$challengeHeader)
+            if (!$challengeHeader) {
                 throw new Exception("No Sec-WebSocket-Key received!");
+            }
 
             // Check for newer handshake
             $challenge = $challengeHeader->getFieldValue();
@@ -65,19 +69,19 @@ class WebSocketTransportHybi extends WebSocketTransport
             $this->setResponse($response);
 
             $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
-            $this->emit("handshake", array($handshakeRequest));
+            $this->emit("handshake", [$handshakeRequest]);
 
-            if($handshakeRequest->isAborted())
+            if ($handshakeRequest->isAborted()) {
                 $this->close();
-            else {
-                $this->_socket->write($response->toString());
+            } else {
+                $this->socket->write($response->toString());
                 $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
 
                 $this->connected = true;
                 $this->emit("connect");
             }
-        } catch(Exception $e){
-            $this->logger->err("Connection error, message: ".$e->getMessage());
+        } catch (Exception $e) {
+            $this->logger->err("Connection error, message: " . $e->getMessage());
             $this->close();
         }
     }
@@ -87,26 +91,31 @@ class WebSocketTransportHybi extends WebSocketTransport
         return base64_encode(sha1($challenge . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
     }
 
-    private static function containsCompleteHeader($data) {
+    private static function containsCompleteHeader($data)
+    {
         return strstr($data, "\r\n\r\n");
     }
 
+    /**
+     * @param $data
+     * @return array
+     */
     public function handleData(&$data)
     {
-        if(!$this->connected)
-		{
+        if (!$this->connected) {
             if (!$this->containsCompleteHeader($data)) {
-                return array();
+                return [];
             }
             $data = $this->readHandshakeResponse($data);
-		}
+        }
 
-        $frames = array();
-        while ($frame = WebSocketFrame::decode($data)){
-            if (WebSocketOpcode::isControlFrame($frame->getType()))
+        $frames = [];
+        while ($frame = WebSocketFrame::decode($data)) {
+            if (WebSocketOpcode::isControlFrame($frame->getType())) {
                 $this->processControlFrame($frame);
-            else
+            } else {
                 $this->processMessageFrame($frame);
+            }
 
             $frames[] = $frame;
         }
@@ -114,6 +123,10 @@ class WebSocketTransportHybi extends WebSocketTransport
         return $frames;
     }
 
+    /**
+     * @param WebSocketFrameInterface $frame
+     * @return bool|void
+     */
     public function sendFrame(WebSocketFrameInterface $frame)
     {
         /**
@@ -122,7 +135,7 @@ class WebSocketTransportHybi extends WebSocketTransport
         $hybiFrame = $frame;
 
         // Mask IFF client!
-        $hybiFrame->setMasked($this->_role == WebsocketTransportRole::CLIENT);
+        $hybiFrame->setMasked($this->role == WebsocketTransportRole::CLIENT);
 
         parent::sendFrame($hybiFrame);
     }
@@ -139,15 +152,15 @@ class WebSocketTransportHybi extends WebSocketTransport
      */
     protected function processMessageFrame(WebSocketFrame $frame)
     {
-        if ($this->_openMessage && $this->_openMessage->isFinalised() == false) {
-            $this->_openMessage->takeFrame($frame);
+        if ($this->openMessage && $this->openMessage->isFinalised() == false) {
+            $this->openMessage->takeFrame($frame);
         } else {
-            $this->_openMessage = WebSocketMessage::fromFrame($frame);
+            $this->openMessage = WebSocketMessage::fromFrame($frame);
         }
 
-        if ($this->_openMessage && $this->_openMessage->isFinalised()) {
-            $this->emit("message", array('message' => $this->_openMessage));
-            $this->_openMessage = null;
+        if ($this->openMessage && $this->openMessage->isFinalised()) {
+            $this->emit("message", ['message' => $this->openMessage]);
+            $this->openMessage = null;
         }
     }
 
@@ -161,21 +174,25 @@ class WebSocketTransportHybi extends WebSocketTransport
     protected function processControlFrame(WebSocketFrame $frame)
     {
         switch ($frame->getType()) {
-            case WebSocketOpcode::CloseFrame :
+            case WebSocketOpcode::CLOSE_FRAME:
                 $this->logger->notice("Got CLOSE frame");
 
-                $frame = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
+                $frame = WebSocketFrame::create(WebSocketOpcode::CLOSE_FRAME);
                 $this->sendFrame($frame);
 
-                $this->_socket->close();
+                $this->socket->close();
                 break;
-            case WebSocketOpcode::PingFrame :
-                $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
+            case WebSocketOpcode::PING_FRAME:
+                $frame = WebSocketFrame::create(WebSocketOpcode::PONG_FRAME);
                 $this->sendFrame($frame);
                 break;
         }
     }
 
+    /**
+     * @param $msg
+     * @return bool
+     */
     public function sendString($msg)
     {
         try {
@@ -189,12 +206,15 @@ class WebSocketTransportHybi extends WebSocketTransport
         return false;
     }
 
+    /**
+     * @return void
+     */
     public function close()
     {
-        $f = WebSocketFrame::create(WebSocketOpcode::CloseFrame);
+        $f = WebSocketFrame::create(WebSocketOpcode::CLOSE_FRAME);
         $this->sendFrame($f);
 
-        $this->_socket->close();
+        $this->socket->close();
     }
 
     private static function randHybiKey()
@@ -207,6 +227,10 @@ class WebSocketTransportHybi extends WebSocketTransport
         );
     }
 
+    /**
+     * @param Uri $uri
+     * @return Request
+     */
     public function initiateHandshake(Uri $uri)
     {
         $challenge = self::randHybiKey();
@@ -215,9 +239,9 @@ class WebSocketTransportHybi extends WebSocketTransport
 
         $requestUri = $uri->getPath();
 
-        if($uri->getQuery())
-            $requestUri .= "?".$uri->getQuery();
-
+        if ($uri->getQuery()) {
+            $requestUri .= "?" . $uri->getQuery();
+        }
 
         $request->setUri($requestUri);
 
@@ -229,9 +253,9 @@ class WebSocketTransportHybi extends WebSocketTransport
 
         $this->setRequest($request);
 
-        $this->emit("request", array($request));
+        $this->emit("request", [$request]);
 
-        $this->_socket->write($request->toString());
+        $this->socket->write($request->toString());
 
         return $request;
     }
@@ -243,9 +267,9 @@ class WebSocketTransportHybi extends WebSocketTransport
 
         $handshake = new Handshake($this->request, $response);
 
-        $this->emit("handshake", array($handshake));
+        $this->emit("handshake", [$handshake]);
 
-        if($handshake->isAborted()){
+        if ($handshake->isAborted()) {
             $this->close();
             return '';
         }
@@ -255,5 +279,4 @@ class WebSocketTransportHybi extends WebSocketTransport
 
         return $response->getContent();
     }
-
 }

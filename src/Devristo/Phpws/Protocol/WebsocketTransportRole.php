@@ -10,8 +10,6 @@ namespace Devristo\Phpws\Protocol;
 
 class WebsocketTransportRole
 {
-
     const CLIENT = 0;
     const SERVER = 1;
-
 }

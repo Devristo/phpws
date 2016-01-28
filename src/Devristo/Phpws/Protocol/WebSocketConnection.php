@@ -19,20 +19,28 @@ class WebSocketConnection extends Connection
      *
      * @var WebSocketTransportInterface
      */
-    private $_transport = null;
-    private $_lastChanged = null;
+    private $transport;
+    private $lastChanged;
 
+    /**
+     * @param $socket
+     * @param LoopInterface $loop
+     * @param $logger
+     */
     public function __construct($socket, LoopInterface $loop, $logger)
     {
         parent::__construct($socket, $loop);
 
-        $this->_lastChanged = time();
+        $this->lastChanged = time();
         $this->logger = $logger;
     }
 
+    /**
+     * @param $stream
+     */
     public function handleData($stream)
     {
-        if (feof($stream) || !is_resource($stream)){
+        if (feof($stream) || !is_resource($stream)) {
             $this->close();
             return;
         }
@@ -45,57 +53,71 @@ class WebSocketConnection extends Connection
         }
     }
 
+    /**
+     * @param $data
+     */
     private function onData($data)
     {
         try {
-            $this->_lastChanged = time();
+            $this->lastChanged = time();
 
-            if ($this->_transport)
-                $this->emit('data', array($data, $this));
-            else
+            if ($this->transport) {
+                $this->emit('data', [$data, $this]);
+            } else {
                 $this->establishConnection($data);
+            }
         } catch (Exception $e) {
-            $this->logger->err("Error while handling incoming data. Exception message is: ".$e->getMessage());
+            $this->logger->err("Error while handling incoming data. Exception message is: " . $e->getMessage());
             $this->close();
         }
     }
 
+    /**
+     * @param WebSocketTransportInterface $con
+     */
     public function setTransport(WebSocketTransportInterface $con)
     {
-        $this->_transport = $con;
+        $this->transport = $con;
     }
 
+    /**
+     * @param $data
+     */
     public function establishConnection($data)
     {
-        $this->_transport = WebSocketTransportFactory::fromSocketData($this, $data, $this->logger);
+        $this->transport = WebSocketTransportFactory::fromSocketData($this, $data, $this->logger);
         $myself = $this;
 
-        $this->_transport->on("handshake", function(Handshake $request) use ($myself){
-            $myself->emit("handshake", array($request));
+        $this->transport->on("handshake", function (Handshake $request) use ($myself) {
+            $myself->emit("handshake", [$request]);
         });
 
-        $this->_transport->on("connect", function() use ($myself){
-            $myself->emit("connect", array($myself));
+        $this->transport->on("connect", function () use ($myself) {
+            $myself->emit("connect", [$myself]);
         });
 
-        $this->_transport->on("message", function($message) use($myself){
-            $myself->emit("message", array("message" => $message));
+        $this->transport->on("message", function ($message) use ($myself) {
+            $myself->emit("message", ["message" => $message]);
         });
 
-        $this->_transport->on("flashXmlRequest", function($message) use($myself){
+        $this->transport->on("flashXmlRequest", function ($message) use ($myself) {
             $myself->emit("flashXmlRequest");
         });
 
-        if ($this->_transport instanceof WebSocketTransportFlash)
+        if ($this->transport instanceof WebSocketTransportFlash) {
             return;
+        }
 
         $request = Request::fromString($data);
-        $this->_transport->respondTo($request);
+        $this->transport->respondTo($request);
     }
 
+    /**
+     * @return int
+     */
     public function getLastChanged()
     {
-        return $this->_lastChanged;
+        return $this->lastChanged;
     }
 
     /**
@@ -104,9 +126,12 @@ class WebSocketConnection extends Connection
      */
     public function getTransport()
     {
-        return $this->_transport;
+        return $this->transport;
     }
 
+    /**
+     * @param LoggerInterface $logger
+     */
     public function setLogger(LoggerInterface $logger)
     {
         $this->logger = $logger;

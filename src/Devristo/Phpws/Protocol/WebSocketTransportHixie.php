@@ -5,15 +5,17 @@ namespace Devristo\Phpws\Protocol;
 use Devristo\Phpws\Exceptions\WebSocketInvalidKeyException;
 use Devristo\Phpws\Framing\WebSocketFrame76;
 use Devristo\Phpws\Messaging\WebSocketMessage76;
-use React\Stream\WritableStreamInterface;
 use Zend\Http\Headers;
 use Zend\Http\Request;
 use Zend\Http\Response;
 
 class WebSocketTransportHixie extends WebSocketTransport
 {
-
-    public function respondTo(Request $request){
+    /**
+     * @param Request $request
+     */
+    public function respondTo(Request $request)
+    {
         $this->request = $request;
         $this->sendHandshakeResponse();
     }
@@ -28,7 +30,7 @@ class WebSocketTransportHixie extends WebSocketTransport
         $key2 = $this->getHandshakeRequest()->getHeader('Sec-Websocket-Key2')->getFieldValue();
 
         // Origin checking (TODO)
-        $originHeader  = $this->getHandshakeRequest()->getHeader('Origin', null);
+        $originHeader = $this->getHandshakeRequest()->getHeader('Origin', null);
         $host = $this->getHandshakeRequest()->getHeader('Host')->getFieldValue();
         $location = $this->getHandshakeRequest()->getUriString();
 
@@ -43,8 +45,10 @@ class WebSocketTransportHixie extends WebSocketTransport
         $headers->addHeaderLine("Upgrade", "WebSocket");
         $headers->addHeaderLine("Connection", "Upgrade");
 
-        if($originHeader)
+        if ($originHeader) {
             $headers->addHeaderLine("Sec-WebSocket-Origin", $originHeader->getFieldValue());
+        }
+
         $headers->addHeaderLine("Sec-WebSocket-Location", "ws://{$host}$location");
 
         // Build HIXIE response
@@ -53,12 +57,12 @@ class WebSocketTransportHixie extends WebSocketTransport
         $this->setResponse($response);
 
         $handshakeRequest = new Handshake($this->getHandshakeRequest(), $this->getHandshakeResponse());
-        $this->emit("handshake", array($handshakeRequest));
+        $this->emit("handshake", [$handshakeRequest]);
 
-        if($handshakeRequest->isAborted())
+        if ($handshakeRequest->isAborted()) {
             $this->close();
-        else {
-            $this->_socket->write($response->toString());
+        } else {
+            $this->socket->write($response->toString());
             $this->logger->debug("Got an HYBI style request, sent HYBY handshake response");
 
             $this->emit("connect");
@@ -81,7 +85,7 @@ class WebSocketTransportHixie extends WebSocketTransport
         $numbers1 = preg_replace("/[^0-9]/", "", $key1);
         $numbers2 = preg_replace("/[^0-9]/", "", $key2);
 
-        //Count spaces
+        // Count spaces
         $spaces1 = substr_count($key1, " ");
         $spaces2 = substr_count($key2, " ");
 
@@ -90,24 +94,34 @@ class WebSocketTransportHixie extends WebSocketTransport
         }
 
         // Key is the number divided by the amount of spaces expressed as a big-endian 32 bit integer
-        $key1_sec = pack("N", $numbers1 / $spaces1);
-        $key2_sec = pack("N", $numbers2 / $spaces2);
+        $key1Sec = pack("N", $numbers1 / $spaces1);
+        $key2Sec = pack("N", $numbers2 / $spaces2);
 
-        // The response is the md5-hash of the 2 keys and the last 8 bytes of the opening handshake, expressed as a binary string
-        return md5($key1_sec . $key2_sec . $l8b, 1);
+        /**
+         * The response is the md5-hash of the 2 keys and the last 8 bytes of the opening handshake,
+         * expressed as a binary string
+         */
+        return md5($key1Sec . $key2Sec . $l8b, 1);
     }
 
-
+    /**
+     * @param $data
+     * @return array
+     */
     public function handleData(&$data)
     {
         $f = WebSocketFrame76::decode($data);
         $message = WebSocketMessage76::fromFrame($f);
 
-        $this->emit("message", array('message' => $message));
+        $this->emit("message", ['message' => $message]);
 
-        return array($f);
+        return [$f];
     }
 
+    /**
+     * @param $msg
+     * @return bool
+     */
     public function sendString($msg)
     {
         $m = WebSocketMessage76::create($msg);
@@ -115,8 +129,11 @@ class WebSocketTransportHixie extends WebSocketTransport
         return $this->sendMessage($m);
     }
 
+    /**
+     * @return void
+     */
     public function close()
     {
-        $this->_socket->close();
+        $this->socket->close();
     }
 }

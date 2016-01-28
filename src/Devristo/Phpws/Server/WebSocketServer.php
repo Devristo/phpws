@@ -9,7 +9,6 @@ use Devristo\Phpws\Protocol\WebSocketTransportHybi;
 use Devristo\Phpws\Protocol\WebSocketTransportInterface;
 use Devristo\Phpws\Protocol\WebSocketConnection;
 use Evenement\EventEmitter;
-use Exception;
 use React\EventLoop\LoopInterface;
 use SplObjectStorage;
 use Zend\Log\LoggerInterface;
@@ -22,37 +21,53 @@ use Zend\Uri\Uri;
  */
 class WebSocketServer extends EventEmitter
 {
-    protected $_url;
+    protected $url;
+
+    /**
+     * @var Uri
+     */
+    protected $uri;
+
+    /**
+     * @var LoopInterface
+     */
+    protected $loop;
 
     /**
      *
      * The raw streams connected to the WebSocket server (whether a handshake has taken place or not)
      * @var WebSocketConnection[]|SplObjectStorage
      */
-    protected $_streams;
+    protected $streams;
 
     /**
      * The connected clients to the WebSocket server, a valid handshake has been performed.
      * @var \SplObjectStorage|WebSocketTransportInterface[]
      */
-    protected $_connections = array();
+    protected $connections = [];
 
-    protected $purgeUserTimeOut = null;
-    protected $_context = null;
+    protected $purgeUserTimeOut;
+    protected $context;
+
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
 
     /**
      *
      * Enter description here ...
      * @var \Devristo\Phpws\Server\UriHandler\WebSocketUriHandlerInterface[]
      */
-    protected $uriHandlers = array();
+    protected $uriHandlers = [];
 
     /**
      * Flash-policy-response for flashplayer/flashplugin
      * @access protected
      * @var string
      */
-    protected $FLASH_POLICY_FILE = "<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\" /></cross-domain-policy>\0";
+    protected $flashPolicyFile =
+        "<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\" /></cross-domain-policy>\0";
 
     /**
      * Handle incoming messages.
@@ -68,32 +83,40 @@ class WebSocketServer extends EventEmitter
     {
         $uri = new Uri($url);
 
-        if($uri->getScheme() == 'ws')
+        if ($uri->getScheme() == 'ws') {
             $uri->setScheme('tcp');
-        elseif($uri->getScheme() == 'wss')
+        } elseif ($uri->getScheme() == 'wss') {
             $uri->setScheme('ssl');
+        }
 
-        if($uri->getScheme() != 'tcp' && $uri->getScheme() != 'ssl')
+        if ($uri->getScheme() != 'tcp' && $uri->getScheme() != 'ssl') {
             throw new \InvalidArgumentException("Uri scheme must be one of: tcp, ssl, ws, wss");
+        }
 
         $this->uri = $uri;
 
         $this->loop = $loop;
-        $this->_streams = new SplObjectStorage();
-        $this->_connections = new SplObjectStorage();
+        $this->streams = new SplObjectStorage();
+        $this->connections = new SplObjectStorage();
 
-        $this->_context = stream_context_create();
-        $this->_logger = $logger;
+        $this->context = stream_context_create();
+        $this->logger = $logger;
     }
 
+    /**
+     * @return resource
+     */
     public function getStreamContext()
     {
-        return $this->_context;
+        return $this->context;
     }
 
+    /**
+     * @param $context
+     */
     public function setStreamContext($context)
     {
-        $this->_context = $context;
+        $this->context = $context;
     }
 
     /**
@@ -104,21 +127,28 @@ class WebSocketServer extends EventEmitter
 
         $err = $errno = 0;
 
-        $this->FLASH_POLICY_FILE = str_replace('to-ports="*', 'to-ports="' . $this->uri->getPort() ?: 80, $this->FLASH_POLICY_FILE);
+        $this->flashPolicyFile =
+            str_replace('to-ports="*', 'to-ports="' . $this->uri->getPort() ?: 80, $this->flashPolicyFile);
 
-        $serverSocket = stream_socket_server($this->uri->toString(), $errno, $err, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $this->_context);
+        $serverSocket = stream_socket_server(
+            $this->uri->toString(),
+            $errno,
+            $err,
+            STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,
+            $this->context
+        );
 
-        $this->_logger->notice(sprintf("phpws listening on %s", $this->uri->toString()));
+        $this->logger->notice(sprintf("phpws listening on %s", $this->uri->toString()));
 
         if ($serverSocket == false) {
-            $this->_logger->err("Error: $err");
+            $this->logger->err("Error: $err");
             return;
         }
 
-        $timeOut = & $this->purgeUserTimeOut;
-        $sockets = $this->_streams;
+        $timeOut = &$this->purgeUserTimeOut;
+        $sockets = $this->streams;
         $that = $this;
-        $logger = $this->_logger;
+        $logger = $this->logger;
 
         $this->loop->addReadStream($serverSocket, function ($serverSocket) use ($that, $logger, $sockets) {
             $newSocket = stream_socket_accept($serverSocket);
@@ -131,33 +161,33 @@ class WebSocketServer extends EventEmitter
             $client = new WebSocketConnection($newSocket, $that->loop, $logger);
             $sockets->attach($client);
 
-            $client->on("handshake", function(Handshake $request) use($that, $client){
-                $that->emit("handshake",array($client->getTransport(), $request));
+            $client->on("handshake", function (Handshake $request) use ($that, $client) {
+                $that->emit("handshake", [$client->getTransport(), $request]);
             });
 
             $client->on("connect", function () use ($that, $client, $logger) {
                 $con = $client->getTransport();
                 $that->getConnections()->attach($con);
-                $that->emit("connect", array("client" => $con));
+                $that->emit("connect", ["client" => $con]);
             });
 
             $client->on("message", function ($message) use ($that, $client, $logger) {
                 $connection = $client->getTransport();
-                $that->emit("message", array("client" => $connection, "message" => $message));
+                $that->emit("message", ["client" => $connection, "message" => $message]);
             });
 
             $client->on("close", function () use ($that, $client, $logger, &$sockets, $client) {
                 $sockets->detach($client);
                 $connection = $client->getTransport();
 
-                if($connection){
+                if ($connection) {
                     $that->getConnections()->detach($connection);
-                    $that->emit("disconnect", array("client" => $connection));
+                    $that->emit("disconnect", ["client" => $connection]);
                 }
             });
 
             $client->on("flashXmlRequest", function () use ($that, $client) {
-                $client->getTransport()->sendString($that->FLASH_POLICY_FILE);
+                $client->getTransport()->sendString($that->flashPolicyFile);
                 $client->close();
             });
         });
@@ -165,14 +195,16 @@ class WebSocketServer extends EventEmitter
         $this->loop->addPeriodicTimer(5, function () use ($timeOut, $sockets, $that) {
 
             # Lets send some pings
-            foreach($that->getConnections() as $c){
-                if($c instanceof WebSocketTransportHybi)
-                    $c->sendFrame(WebSocketFrame::create(WebSocketOpcode::PingFrame));
+            foreach ($that->getConnections() as $c) {
+                if ($c instanceof WebSocketTransportHybi) {
+                    $c->sendFrame(WebSocketFrame::create(WebSocketOpcode::PING_FRAME));
+                }
             }
 
             $currentTime = time();
-            if ($timeOut == null)
+            if ($timeOut == null) {
                 return;
+            }
 
             foreach ($sockets as $s) {
                 if ($currentTime - $s->getLastChanged() > $timeOut) {
@@ -182,9 +214,11 @@ class WebSocketServer extends EventEmitter
         });
     }
 
+    /**
+     * @return \Devristo\Phpws\Protocol\WebSocketTransportInterface[]|SplObjectStorage
+     */
     public function getConnections()
     {
-        return $this->_connections;
+        return $this->connections;
     }
 }
-

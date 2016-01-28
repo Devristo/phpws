@@ -9,34 +9,60 @@
 namespace Devristo\Phpws\Protocol;
 
 use Exception;
+use Zend\Http\Request;
 
 class WebSocketTransportFlash extends WebSocketTransport
 {
-
+    /**
+     * WebSocketTransportFlash constructor.
+     * @param \React\Stream\WritableStreamInterface $socket
+     * @param $data
+     */
     public function __construct($socket, $data)
     {
-        $this->_socket = $socket;
+        $this->socket = $socket;
 
         $this->emit("flashXmlRequest");
     }
 
+    /**
+     * @param $msg
+     */
     public function sendString($msg)
     {
-        $this->_socket->write($msg);
+        $this->socket->write($msg);
     }
 
+    /**
+     * @return void
+     */
     public function close()
     {
-        $this->_socket->close();
+        $this->socket->close();
     }
 
+    /**
+     * @throws Exception
+     */
     public function sendHandshakeResponse()
     {
         throw new Exception("Not supported!");
     }
 
-    public function handleData($data)
+    /**
+     * @param $data
+     * @throws Exception
+     */
+    public function handleData(&$data)
     {
         throw new Exception("Not supported!");
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function respondTo(Request $request)
+    {
+        // TODO: Implement respondTo() method.
     }
 }

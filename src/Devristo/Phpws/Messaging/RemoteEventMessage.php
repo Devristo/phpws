@@ -8,17 +8,24 @@
 
 namespace Devristo\Phpws\Messaging;
 
-
-class RemoteEventMessage implements MessageInterface {
+class RemoteEventMessage implements MessageInterface
+{
     protected $tag;
     protected $data;
     protected $event;
     protected $room;
 
-    public function __construct(){
+    public function __construct()
+    {
         $this->tag = uniqid("server-");
     }
 
+    /**
+     * @param $room
+     * @param $event
+     * @param $data
+     * @return RemoteEventMessage
+     */
     public static function create($room, $event, $data)
     {
         $message = new RemoteEventMessage();
@@ -77,32 +84,48 @@ class RemoteEventMessage implements MessageInterface {
         return $this->tag;
     }
 
-    public static function fromJson($jsonString){
+    /**
+     * @param $jsonString
+     * @return RemoteEventMessage
+     */
+    public static function fromJson($jsonString)
+    {
         $data = json_decode($jsonString);
 
-        if(!$data || !property_exists($data, 'event') || !property_exists($data, 'tag') || !property_exists($data, 'room'))
+        if (!$data
+            || !property_exists($data, 'event')
+            || !property_exists($data, 'tag')
+            || !property_exists($data, 'room')
+        ) {
             throw new \InvalidArgumentException("Not a valid JSON RemoteEvent object");
+        }
 
-        $JsonMessage = new RemoteEventMessage();
+        $jsonMessage = new RemoteEventMessage();
 
-        if(property_exists($data, 'data'))
-            $JsonMessage->setData($data->data);
-        else $JsonMessage->setData(null);
+        if (property_exists($data, 'data')) {
+            $jsonMessage->setData($data->data);
+        } else {
+            $jsonMessage->setData(null);
+        }
 
-        $JsonMessage->setTag($data->tag);
-        $JsonMessage->setEvent($data->event);
-        $JsonMessage->setRoom($data->room);
+        $jsonMessage->setTag($data->tag);
+        $jsonMessage->setEvent($data->event);
+        $jsonMessage->setRoom($data->room);
 
-        return $JsonMessage;
+        return $jsonMessage;
     }
 
-    public function toJson(){
-        return json_encode(array(
+    /**
+     * @return string
+     */
+    public function toJson()
+    {
+        return json_encode([
             'tag' => $this->getTag(),
             'data' => $this->getData(),
             'room' => $this->getRoom(),
             'event' => $this->getEvent()
-        ));
+        ]);
     }
 
     /**
@@ -120,4 +143,4 @@ class RemoteEventMessage implements MessageInterface {
     {
         return $this->event;
     }
-} 
+}

@@ -16,7 +16,8 @@ use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 use Zend\Log\LoggerInterface;
 
-class RemoteEventTransport extends EventEmitter implements TransportInterface{
+class RemoteEventTransport extends EventEmitter implements TransportInterface
+{
     /**
      * @var TransportInterface
      */
@@ -26,16 +27,26 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
     /**
      * @var Deferred[]
      */
-    protected $deferred = array();
-    protected $timers = array();
+    protected $deferred = [];
+    protected $timers = [];
 
     protected $actionEmitter;
 
-    public function remoteEvent(){
+    /**
+     * @var LoopInterface
+     */
+    protected $loop;
+
+    /**
+     * @return EventEmitter
+     */
+    public function remoteEvent()
+    {
         return $this->actionEmitter;
     }
 
-    public function __construct(TransportInterface $carrierProtocol, LoopInterface $loop, LoggerInterface $logger){
+    public function __construct(TransportInterface $carrierProtocol, LoopInterface $loop, LoggerInterface $logger)
+    {
         $that = $this;
         $this->logger = $logger;
         $this->loop = $loop;
@@ -46,34 +57,44 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
         $deferreds = &$this->deferred;
         $timers = &$this->timers;
 
-        $carrierProtocol->on("message", function(MessageInterface $message) use (&$deferreds, &$timers, &$loop, $that, $logger){
-            $string = $message->getData();
+        $carrierProtocol->on(
+            "message",
+            function (MessageInterface $message) use (&$deferreds, &$timers, &$loop, $that, $logger) {
+                $string = $message->getData();
 
-            try{
-                $jsonMessage = RemoteEventMessage::fromJson($string);
+                try {
+                    $jsonMessage = RemoteEventMessage::fromJson($string);
 
-                $tag = $jsonMessage->getTag();
+                    $tag = $jsonMessage->getTag();
 
-                if(array_key_exists($tag, $deferreds)){
-                    $deferred = $deferreds[$tag];
-                    unset($deferreds[$tag]);
+                    if (array_key_exists($tag, $deferreds)) {
+                        $deferred = $deferreds[$tag];
+                        unset($deferreds[$tag]);
 
-                    if(array_key_exists($tag, $timers)){
-                        $loop->cancelTimer($timers[$tag]);
-                        unset($timers[$tag]);
+                        if (array_key_exists($tag, $timers)) {
+                            $loop->cancelTimer($timers[$tag]);
+                            unset($timers[$tag]);
+                        }
+                        $deferred->resolve($jsonMessage);
+                    } else {
+                        $that->remoteEvent()->emit($jsonMessage->getEvent(), [$jsonMessage]);
                     }
-                    $deferred->resolve($jsonMessage);
-                }else
-                    $that->remoteEvent()->emit($jsonMessage->getEvent(), array($jsonMessage));
-                    $that->emit("message", array($jsonMessage));
 
-            }catch(\Exception $e){
-                $logger->err("Exception while parsing JsonMessage: ".$e->getMessage());
+                    $that->emit("message", [$jsonMessage]);
+
+                } catch (\Exception $e) {
+                    $logger->err("Exception while parsing JsonMessage: " . $e->getMessage());
+                }
             }
-        });
+        );
     }
 
-    public function replyTo(RemoteEventMessage $message, $data){
+    /**
+     * @param RemoteEventMessage $message
+     * @param $data
+     */
+    public function replyTo(RemoteEventMessage $message, $data)
+    {
         $reply = new RemoteEventMessage();
         $reply->setRoom($message->getRoom());
         $reply->setTag($message->getTag());
@@ -83,7 +104,13 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
         $this->carrierProtocol->sendString($reply->toJson());
     }
 
-    public function whenResponseTo(RemoteEventMessage $message, $timeout=null){
+    /**
+     * @param RemoteEventMessage $message
+     * @param null $timeout
+     * @return \React\Promise\Promise|\React\Promise\PromiseInterface
+     */
+    public function whenResponseTo(RemoteEventMessage $message, $timeout = null)
+    {
         $deferred = new Deferred();
 
         $tag = $message->getTag();
@@ -91,17 +118,17 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
 
         $this->carrierProtocol->sendString($message->toJson());
         $this->logger->debug(sprintf(
-            "Awaiting response to '%s'%s with %s"
-            , $message->getData()
-            , $message->getRoom() ? " in room ".$message->getRoom() : ''
-            , $timeout ? "timeout $timeout" : 'no timeout'
+            "Awaiting response to '%s'%s with %s",
+            $message->getData(),
+            $message->getRoom() ? " in room " . $message->getRoom() : '',
+            $timeout ? "timeout $timeout" : 'no timeout'
         ));
 
-        if($timeout){
+        if ($timeout) {
             $list = &$this->deferred;
             $logger = $this->logger;
 
-            $this->timers[$tag] = $this->loop->addTimer($timeout, function() use($deferred, &$list, $tag, $logger){
+            $this->timers[$tag] = $this->loop->addTimer($timeout, function () use ($deferred, &$list, $tag, $logger) {
                 unset($list[$tag]);
                 $logger->debug("Request with tag $tag has timed out");
                 $deferred->reject("Timeout occurred");
@@ -111,11 +138,20 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
         return $deferred->promise();
     }
 
-    public function sendEmit($room, $event, $data){
+    /**
+     * @param $room
+     * @param $event
+     * @param $data
+     */
+    public function sendEmit($room, $event, $data)
+    {
         $message = RemoteEventMessage::create($room, $event, $data);
         $this->send($message);
     }
 
+    /**
+     * @param $string
+     */
     public function sendString($string)
     {
         $message = new RemoteEventMessage();
@@ -125,6 +161,9 @@ class RemoteEventTransport extends EventEmitter implements TransportInterface{
         $this->send($message);
     }
 
+    /**
+     * @param RemoteEventMessage $message
+     */
     public function send(RemoteEventMessage $message)
     {
         $this->carrierProtocol->sendString($message->toJson());

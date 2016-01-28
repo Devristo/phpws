@@ -6,7 +6,7 @@ use Devristo\Phpws\Protocol\StackTransport;
 
 class Room extends \Evenement\EventEmitter
 {
-    private $members = array();
+    private $members = [];
     private $name = '';
     private $logger;
 
@@ -16,18 +16,24 @@ class Room extends \Evenement\EventEmitter
         $this->logger = $logger;
     }
 
+    /**
+     * @param StackTransport $transport
+     */
     public function subscribe(StackTransport $transport)
     {
         $this->members[$transport->getId()] = $transport;
         $this->logger->notice("[{$this->name}] User {$transport->getId()} has subscribed!");
     }
 
+    /**
+     * @param StackTransport $transport
+     */
     public function unsubscribe(StackTransport $transport)
     {
-        if (array_key_exists($transport->getId(), $this->members)){
+        if (array_key_exists($transport->getId(), $this->members)) {
             unset($this->members[$transport->getId()]);
 
-            $this->emit("unsubscribe", array($transport));
+            $this->emit("unsubscribe", [$transport]);
         }
     }
 
@@ -39,8 +45,13 @@ class Room extends \Evenement\EventEmitter
         return array_values($this->members);
     }
 
-    public function remoteEmit($event, $data){
-        foreach($this->getMembers() as $member){
+    /**
+     * @param $event
+     * @param $data
+     */
+    public function remoteEmit($event, $data)
+    {
+        foreach ($this->getMembers() as $member) {
             $message = RemoteEventMessage::create($this->name, $event, $data);
             $member->getTopTransport()->send($message);
         }

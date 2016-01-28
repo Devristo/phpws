@@ -8,16 +8,17 @@
  */
 namespace Devristo\Phpws\Protocol;
 
-use Devristo\Phpws\Framing\WebSocketFrameInterface;
-use Devristo\Phpws\Messaging\WebSocketMessageInterface;
 use Zend\Http\Request;
 use Zend\Http\Response;
 
 interface WebSocketTransportInterface extends TransportInterface
 {
-
     public function getId();
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function respondTo(Request $request);
 
     /**
@@ -30,13 +31,32 @@ interface WebSocketTransportInterface extends TransportInterface
      */
     public function getHandshakeResponse();
 
+    /**
+     * @param $data
+     * @return mixed
+     */
     public function handleData(&$data);
 
+    /**
+     * @return mixed
+     */
     public function getIp();
 
+    /**
+     * @return mixed
+     */
     public function close();
 
+    /**
+     * @param $key
+     * @param $value
+     * @return mixed
+     */
     public function setData($key, $value);
 
+    /**
+     * @param $key
+     * @return mixed
+     */
     public function getData($key);
 }

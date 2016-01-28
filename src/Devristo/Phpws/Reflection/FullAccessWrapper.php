@@ -6,37 +6,36 @@
 
 namespace Devristo\Phpws\Reflection;
 
-
 class FullAccessWrapper
 {
-    protected $_self;
-    protected $_refl;
+    protected $self;
+    protected $refl;
 
     public function __construct($self)
     {
-        $this->_self = $self;
-        $this->_refl = new \ReflectionObject($self);
+        $this->self = $self;
+        $this->refl = new \ReflectionObject($self);
     }
 
     public function __call($method, $args)
     {
-        $mrefl = $this->_refl->getMethod($method);
+        $mrefl = $this->refl->getMethod($method);
         $mrefl->setAccessible(true);
-        return $mrefl->invokeArgs($this->_self, $args);
+        return $mrefl->invokeArgs($this->self, $args);
     }
 
     public function __set($name, $value)
     {
-        $prefl = $this->_refl->getProperty($name);
+        $prefl = $this->refl->getProperty($name);
         $prefl->setAccessible(true);
-        $prefl->setValue($this->_self, $value);
+        $prefl->setValue($this->self, $value);
     }
 
     public function __get($name)
     {
-        $prefl = $this->_refl->getProperty($name);
+        $prefl = $this->refl->getProperty($name);
         $prefl->setAccessible(true);
-        return $prefl->getValue($this->_self);
+        return $prefl->getValue($this->self);
     }
 
     public function __isset($name)
@@ -44,4 +43,4 @@ class FullAccessWrapper
         $value = $this->__get($name);
         return isset($value);
     }
-} 
+}

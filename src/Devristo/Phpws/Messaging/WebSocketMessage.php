@@ -1,10 +1,10 @@
 <?php
 namespace Devristo\Phpws\Messaging;
+
 use Devristo\Phpws\Exceptions\WebSocketMessageNotFinalised;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketOpcode;
-
 
 /**
  * WebSocketMessage compatible with the latest draft.
@@ -15,15 +15,17 @@ use Devristo\Phpws\Framing\WebSocketOpcode;
  */
 class WebSocketMessage implements WebSocketMessageInterface
 {
-
     /**
      *
      * Enter description here ...
      * @var \Devristo\Phpws\Framing\WebSocketFrame[];
      */
-    protected $frames = array();
+    protected $frames = [];
     protected $data = '';
 
+    /**
+     * @param string $data
+     */
     public function setData($data)
     {
         $this->data = $data;
@@ -31,6 +33,10 @@ class WebSocketMessage implements WebSocketMessageInterface
         $this->createFrames();
     }
 
+    /**
+     * @param string $data
+     * @return WebSocketMessage
+     */
     public static function create($data)
     {
         $o = new self();
@@ -39,10 +45,15 @@ class WebSocketMessage implements WebSocketMessageInterface
         return $o;
     }
 
+    /**
+     * @return string
+     * @throws WebSocketMessageNotFinalised
+     */
     public function getData()
     {
-        if ($this->isFinalised() == false)
+        if ($this->isFinalised() == false) {
             throw new WebSocketMessageNotFinalised($this);
+        }
 
         $data = '';
 
@@ -53,6 +64,10 @@ class WebSocketMessage implements WebSocketMessageInterface
         return $data;
     }
 
+    /**
+     * @param WebSocketFrameInterface $frame
+     * @return WebSocketMessage
+     */
     public static function fromFrame(WebSocketFrameInterface $frame)
     {
         assert($frame instanceof WebSocketFrame);
@@ -67,18 +82,27 @@ class WebSocketMessage implements WebSocketMessageInterface
 
     protected function createFrames()
     {
-        $this->frames = array(WebSocketFrame::create(WebSocketOpcode::TextFrame, $this->data));
+        $this->frames = [
+            WebSocketFrame::create(WebSocketOpcode::TEXT_FRAME, $this->data)
+        ];
     }
 
+    /**
+     * @return \Devristo\Phpws\Framing\WebSocketFrame[]
+     */
     public function getFrames()
     {
         return $this->frames;
     }
 
+    /**
+     * @return bool
+     */
     public function isFinalised()
     {
-        if (count($this->frames) == 0)
+        if (count($this->frames) == 0) {
             return false;
+        }
 
         return $this->frames[count($this->frames) - 1]->isFinal();
     }
@@ -91,5 +115,4 @@ class WebSocketMessage implements WebSocketMessageInterface
     {
         $this->frames[] = $frame;
     }
-
 }

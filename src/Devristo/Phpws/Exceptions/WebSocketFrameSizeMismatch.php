@@ -13,10 +13,11 @@ use Exception;
 
 class WebSocketFrameSizeMismatch extends Exception
 {
-
+    /**
+     * @param WebSocketFrameInterface $msg
+     */
     public function __construct(WebSocketFrameInterface $msg)
     {
         parent::__construct("Frame size mismatches with the expected frame size. Maybe a buggy client.");
     }
-
 }

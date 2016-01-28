@@ -13,6 +13,7 @@ use Devristo\Phpws\Protocol\WebSocketTransportHybi;
 use Devristo\Phpws\Protocol\WebSocketConnection;
 use Devristo\Phpws\Reflection\FullAccessWrapper;
 use Evenement\EventEmitter;
+use React\Dns\Resolver\Resolver;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 use Zend\Http\Request;
@@ -63,13 +64,15 @@ class WebSocket extends EventEmitter
      * @param LoopInterface $loop
      * @param LoggerInterface $logger
      * @param array|null $streamOptions
+     * @param string $dns
      * @throws WebSocketInvalidUrlScheme
      */
     public function __construct(
         $url,
         LoopInterface $loop,
         LoggerInterface $logger,
-        array $streamOptions = null
+        array $streamOptions = null,
+        $dns = '8.8.8.8'
     ) {
         $this->logger = $logger;
         $this->loop = $loop;
@@ -83,7 +86,7 @@ class WebSocket extends EventEmitter
         }
 
         $dnsResolverFactory = new \React\Dns\Resolver\Factory();
-        $this->dns = $dnsResolverFactory->createCached('8.8.8.8', $loop);
+        $this->dns = $dnsResolverFactory->createCached($dns, $loop);
     }
 
     /**

@@ -6,7 +6,6 @@ use Exception;
 
 class WebSocketInvalidKeyException extends Exception
 {
-
     /**
      * @param string $key1
      * @param string $key2
@@ -17,5 +16,4 @@ class WebSocketInvalidKeyException extends Exception
         parent::__construct("Client sent an invalid opening handshake!");
         fwrite(STDERR, "Key 1: \t$key1\nKey 2: \t$key2\nL8b: \t$l8b");
     }
-
 }

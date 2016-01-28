@@ -5,20 +5,31 @@ namespace Devristo\Phpws\Client;
 use React\SocketClient\Connector as BaseConnector;
 use React\EventLoop\LoopInterface;
 use React\Dns\Resolver\Resolver;
-use React\Promise\When;
+use React\Promise;
 
 class Connector extends BaseConnector
 {
-    protected $contextOptions = array();
+    protected $contextOptions = [];
 
+    /**
+     * @param LoopInterface $loop
+     * @param Resolver $resolver
+     * @param array|null $contextOptions
+     */
     public function __construct(LoopInterface $loop, Resolver $resolver, array $contextOptions = null)
     {
         parent::__construct($loop, $resolver);
 
-        $contextOptions = null === $contextOptions ? array() : $contextOptions;
+        $contextOptions = null === $contextOptions ? [] : $contextOptions;
         $this->contextOptions = $contextOptions;
     }
 
+    /**
+     * @param $address
+     * @param $port
+     * @param null $hostName
+     * @return \React\Promise\PromiseInterface|static
+     */
     public function createSocketForAddress($address, $port, $hostName = null)
     {
         $url = $this->getSocketUrl($address, $port);
@@ -36,7 +47,7 @@ class Connector extends BaseConnector
         $socket = stream_socket_client($url, $errno, $errstr, 0, $flags, $context);
 
         if (!$socket) {
-            return When::reject(new \RuntimeException(
+            return Promise\reject(new \RuntimeException(
                 sprintf("connection to %s:%d failed: %s", $address, $port, $errstr),
                 $errno
             ));
@@ -48,7 +59,7 @@ class Connector extends BaseConnector
 
         return $this
             ->waitForStreamOnce($socket)
-            ->then(array($this, 'checkConnectedSocket'))
-            ->then(array($this, 'handleConnectedSocket'));
+            ->then([$this, 'checkConnectedSocket'])
+            ->then([$this, 'handleConnectedSocket']);
     }
 }

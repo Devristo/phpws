@@ -19,6 +19,8 @@ use Zend\Log\LoggerInterface;
 
 abstract class WebSocketTransport extends EventEmitter implements WebSocketTransportInterface, LoggerAwareInterface
 {
+    public $parameters;
+
     /**
      * @var LoggerInterface
      */
@@ -38,92 +40,139 @@ abstract class WebSocketTransport extends EventEmitter implements WebSocketTrans
      *
      * @var WebSocketConnection
      */
-    protected $_socket = null;
-    protected $_cookies = array();
-    public $parameters = null;
-    protected $_role = WebsocketTransportRole::CLIENT;
+    protected $socket;
+    protected $cookies = [];
+    protected $role = WebsocketTransportRole::CLIENT;
 
-    protected $_eventManger;
+    protected $eventManger;
 
-    protected $data = array();
+    protected $data = [];
 
+    protected $id;
+
+    /**
+     * @param WritableStreamInterface $socket
+     */
     public function __construct(WritableStreamInterface $socket)
     {
-        $this->_socket = $socket;
-        $this->_id = uniqid("connection-");
+        $this->socket = $socket;
+        $this->id = uniqid("connection-");
 
         $that = $this;
 
         $buffer = '';
 
-        $socket->on("data", function($data) use ($that, &$buffer){
+        $socket->on("data", function ($data) use ($that, &$buffer) {
             $buffer .= $data;
             $that->handleData($buffer);
         });
 
-        $socket->on("close", function($data) use ($that){
+        $socket->on("close", function ($data) use ($that) {
             $that->emit("close", func_get_args());
         });
     }
 
+    /**
+     * @return string
+     */
     public function getIp()
     {
-        return $this->_socket->getRemoteAddress();
+        return $this->socket->getRemoteAddress();
     }
 
+    /**
+     * @return string
+     */
     public function getId()
     {
-        return $this->_id;
+        return $this->id;
     }
 
-    protected function setRequest(Request $request){
+    protected function setRequest(Request $request)
+    {
         $this->request = $request;
     }
 
-    protected function setResponse(Response $response){
+    protected function setResponse(Response $response)
+    {
         $this->response = $response;
     }
 
-    public function getHandshakeRequest(){
+    /**
+     * @return Request
+     */
+    public function getHandshakeRequest()
+    {
         return $this->request;
     }
 
-    public function getHandshakeResponse(){
+    /**
+     * @return Response
+     */
+    public function getHandshakeResponse()
+    {
         return $this->response;
     }
 
+    /**
+     * @return WebSocketConnection|WritableStreamInterface
+     */
     public function getSocket()
     {
-        return $this->_socket;
+        return $this->socket;
     }
 
-    public function setLogger(LoggerInterface $logger){
+    /**
+     * @param LoggerInterface $logger
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
         $this->logger = $logger;
     }
 
+    /**
+     * @param WebSocketFrameInterface $frame
+     * @return bool
+     */
     public function sendFrame(WebSocketFrameInterface $frame)
     {
-        if ($this->_socket->write($frame->encode()) === false)
+        if ($this->socket->write($frame->encode()) === false) {
             return false;
-
-        return true;
-    }
-
-    public function sendMessage(WebSocketMessageInterface $msg)
-    {
-        foreach ($msg->getFrames() as $frame) {
-            if ($this->sendFrame($frame) === false)
-                return false;
         }
 
         return true;
     }
 
-    public function setData($key, $value){
+    /**
+     * @param WebSocketMessageInterface $msg
+     * @return bool
+     */
+    public function sendMessage(WebSocketMessageInterface $msg)
+    {
+        foreach ($msg->getFrames() as $frame) {
+            if ($this->sendFrame($frame) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $key
+     * @param $value
+     */
+    public function setData($key, $value)
+    {
         $this->data[$key] = $value;
     }
 
-    public function getData($key){
+    /**
+     * @param $key
+     * @return mixed
+     */
+    public function getData($key)
+    {
         return $this->data[$key];
     }
 }

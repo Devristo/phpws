@@ -7,6 +7,7 @@
  * To change this template use File | Settings | File Templates.
  */
 namespace Devristo\Phpws\Messaging;
+
 use Devristo\Phpws\Framing\WebSocketFrameInterface;
 use Devristo\Phpws\Framing\WebSocketFrame;
 use Exception;
@@ -19,7 +20,6 @@ use Exception;
  */
 interface WebSocketMessageInterface extends MessageInterface
 {
-
     /**
      * Retrieve an array of frames of which this message is composed
      *

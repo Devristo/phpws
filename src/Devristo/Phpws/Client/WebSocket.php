@@ -109,9 +109,9 @@ class WebSocket extends EventEmitter
                 $that->stream = $stream;
 
                 $stream->on("close", function() use($that){
-                    $that->emit('close');
                     $that->isClosing = false;
                     $that->state = WebSocket::STATE_CLOSED;
+                    $that->emit('close');
                 });
 
                 // Give the chance to change request

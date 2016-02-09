@@ -188,4 +188,9 @@ class WebSocket extends EventEmitter
                 $loop->cancelTimer($closeTimer);
         });
     }
+
+    public function getState()
+    {
+        return $this->state;
+    }
 }

@@ -119,7 +119,7 @@ class WebSocketFrame implements WebSocketFrameInterface
 
         $key = 0;
         if ($this->mask) {
-            $key = pack("N", rand(0, pow(255, 4) - 1));
+            $key = pack("N", rand(0, PHP_INT_MAX));
             $encoded .= $key;
         }
 

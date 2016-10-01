@@ -159,11 +159,6 @@ class WebSocketFrame implements WebSocketFrameInterface
 
         $len = $secondByte & ~128;
 
-	var_dump('raw', $raw);
-	var_dump('encoded', $len);
-	var_dump('strlen', strlen($raw));
-	var_dump('mbstrlen', mb_strlen($raw));
-    
         if ($len <= 125){
             $frame->payloadLength = $len;
         }elseif (($len == 126) && strlen($raw) >= 2){

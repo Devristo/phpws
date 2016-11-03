@@ -14,7 +14,8 @@
         }
     },
     "require": {
-        "zendframework/zend-log": "2.*",
+        "zendframework/zend-stdlib": "3.0.*",
+        "zendframework/zend-log": "2.8.*",
         "react/socket": "0.4.*",
         "react/stream": "0.4.*",
         "react/socket-client": "0.4.*",

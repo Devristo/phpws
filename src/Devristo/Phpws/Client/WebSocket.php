@@ -68,7 +68,8 @@ class WebSocket extends EventEmitter
             throw new WebSocketInvalidUrlScheme();
 
         $dnsResolverFactory = new \React\Dns\Resolver\Factory();
-        $this->dns = $dnsResolverFactory->createCached('8.8.8.8', $loop);
+        $server = false === getenv('DNS_SERVER') ? '8.8.8.8' : getenv('DNS_SERVER');
+        $this->dns = $dnsResolverFactory->createCached($server, $loop);
     }
 
     public function open($timeOut=null)

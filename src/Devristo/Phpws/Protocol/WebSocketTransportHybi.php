@@ -170,7 +170,7 @@ class WebSocketTransportHybi extends WebSocketTransport
                 $this->_socket->close();
                 break;
             case WebSocketOpcode::PingFrame :
-                $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame);
+                $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame, $frame->getData());
                 $this->sendFrame($frame);
                 break;
         }

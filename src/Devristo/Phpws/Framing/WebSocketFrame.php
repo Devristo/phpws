@@ -131,8 +131,12 @@ class WebSocketFrame implements WebSocketFrameInterface
 
     public static function decode(&$buffer)
     {
-        if(strlen($buffer) < 2)
+	$save_enconding = mb_internal_encoding();
+	mb_internal_encoding("iso-8859-1");
+        if(strlen($buffer) < 2) {
+	    mb_internal_encoding($save_enconding);
             return null;
+	}
 
         $frame = new self();
 
@@ -166,14 +170,17 @@ class WebSocketFrame implements WebSocketFrameInterface
             $frame->payloadLength = ($l + ($h * 0x0100000000));
             $raw = substr($raw, 8);
         } else{
+	    mb_internal_encoding($save_enconding);
             return null;
         }
 
         // If the frame is masked, try to eat the key from the buffer. If the buffer is insufficient, return null and
         // try again next time
         if ($frame->mask) {
-            if(strlen($raw) < 4)
+            if(strlen($raw) < 4) {
+	    mb_internal_encoding($save_enconding);
                 return null;
+	    }
 
             $frame->maskingKey = substr($raw, 0, 4);
             $raw = substr($raw, 4);
@@ -181,8 +188,10 @@ class WebSocketFrame implements WebSocketFrameInterface
 
 
         // Don't continue until we have a full frame
-        if(strlen($raw) < $frame->payloadLength)
+        if(strlen($raw) < $frame->payloadLength) {
+	    mb_internal_encoding($save_enconding);
             return null;
+	}
 
         $packetPayload = substr($raw, 0, $frame->payloadLength);
 
@@ -194,6 +203,7 @@ class WebSocketFrame implements WebSocketFrameInterface
         else
             $frame->payloadData = $packetPayload;
 
+	mb_internal_encoding($save_enconding);
         return $frame;
     }
 

@@ -141,6 +141,10 @@ class WebSocket extends EventEmitter
                     $that->emit("message", array("message" => $message));
                 });
 
+                $transport->on("pong", function($frame) use($that){
+                    $that->emit("pong", array("frame" => $frame));
+                });
+
                 $transport->initiateHandshake($uri);
                 $that->state = WebSocket::STATE_HANDSHAKE_SENT;
             }, function($reason) use ($that, $deferred)

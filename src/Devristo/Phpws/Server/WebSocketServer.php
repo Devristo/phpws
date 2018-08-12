@@ -151,7 +151,7 @@ class WebSocketServer extends EventEmitter
                 $that->emit("message", array("client" => $connection, "message" => $message));
             });
 
-            $client->on("close", function () use ($that, $client, $logger, &$sockets, $client) {
+            $client->on("close", function () use ($that, $client, $logger, &$sockets) {
                 $sockets->detach($client);
                 $connection = $client->getTransport();
 

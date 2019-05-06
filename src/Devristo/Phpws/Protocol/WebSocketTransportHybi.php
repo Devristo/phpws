@@ -173,7 +173,14 @@ class WebSocketTransportHybi extends WebSocketTransport
                 $frame = WebSocketFrame::create(WebSocketOpcode::PongFrame, $frame->getData());
                 $this->sendFrame($frame);
                 break;
+            case WebSocketOpcode::PongFrame :
+                $this->receivePongFrame($frame);
+                break;
         }
+    }
+
+    public function receivePongFrame($frame) {
+        $this->emit("pong",  array($frame));
     }
 
     public function sendString($msg)

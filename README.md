@@ -1,3 +1,14 @@
+Important
+===========
+
+⛔️ This project is no longer maintained ⛔️ 
+
+We urge you to look for a replacement.
+
+
+Description
+============
+
 WebSocket Server and Client library for PHP. Works with the latest HyBi specifications, as well the older Hixie #76 specification used by older Chrome versions and some Flash fallback solutions.
 
 This project was started to bring more interactive features to http://www.u2start.com/
